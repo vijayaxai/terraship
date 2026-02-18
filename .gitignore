@@ -1,0 +1,72 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+terraship
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+
+# Azure Credentials (NEVER COMMIT)
+azure-credentials.env
+**/azure-credentials.env
+.env
+**/.env
+*.env
+
+# Terraship outputs
+terraship-report.json
+terraship-report.sarif
+terraship-report.txt
+validation-report.json
+validation-report.sarif
+validation-report.txt
+**/validation-report.*
+**/reports/
+
+# Node modules for VS Code extension
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+.tmp/

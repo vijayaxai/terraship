@@ -1,0 +1,106 @@
+{
+  "name": "terraship-vscode",
+  "displayName": "Terraship",
+  "description": "Multi-cloud Terraform validation and policy checking",
+  "version": "0.1.5",
+  "publisher": "terraship",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vijayaxai/terraship.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "terraform",
+    "aws",
+    "azure",
+    "gcp",
+    "policy",
+    "validation",
+    "compliance"
+  ],
+  "activationEvents": [
+    "onLanguage:terraform",
+    "onCommand:terraship.validate",
+    "workspaceContains:**/*.tf"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "terraship.validate",
+        "title": "Terraship: Validate Current Workspace"
+      },
+      {
+        "command": "terraship.validateFile",
+        "title": "Terraship: Validate Current File"
+      },
+      {
+        "command": "terraship.init",
+        "title": "Terraship: Initialize Policy"
+      }
+    ],
+    "configuration": {
+      "title": "Terraship",
+      "properties": {
+        "terraship.policyPath": {
+          "type": "string",
+          "default": "./policies/sample-policy.yml",
+          "description": "Path to Terraship policy file"
+        },
+        "terraship.mode": {
+          "type": "string",
+          "enum": [
+            "validate-existing",
+            "ephemeral-sandbox"
+          ],
+          "default": "validate-existing",
+          "description": "Validation mode"
+        },
+        "terraship.cloudProvider": {
+          "type": "string",
+          "enum": [
+            "",
+            "aws",
+            "azure",
+            "gcp"
+          ],
+          "default": "",
+          "description": "Cloud provider (empty for auto-detect)"
+        },
+        "terraship.validateOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run validation on file save"
+        },
+        "terraship.executablePath": {
+          "type": "string",
+          "default": "terraship",
+          "description": "Path to Terraship executable"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}

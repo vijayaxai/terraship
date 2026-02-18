@@ -1,0 +1,83 @@
+# Changelog
+
+All notable changes to the Terraship VS Code extension will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.5] - 2026-02-18
+
+### Changed
+- Updated GitHub repository reference from `terraship/terraship` to `vijayaxai/terraship`
+- Updated all documentation links to point to new repository
+- Updated Go module path to `github.com/vijayaxai/terraship`
+
+## [0.1.4] - 2026-02-18
+
+### Fixed
+- **ENOENT Error Handling**: Improved error messages when terraship CLI not found
+- **Windows Path Support**: Auto-adds `.exe` extension on Windows for executable path
+- **User Guidance**: Added helpful error dialog with step-by-step configuration instructions
+- **One-Click Settings**: Added "Open Settings" button in error dialog for quick path configuration
+
+### Changed
+- Enhanced error detection to distinguish between missing executable and other errors
+- Updated README with troubleshooting guide for ENOENT errors
+- Improved documentation with clear Windows/macOS/Linux instructions
+
+### Documentation
+- Added troubleshooting section for "spawn terraship ENOENT" errors
+- Clarified executablePath configuration for all platforms
+- Updated quick start guide with proper configuration examples
+
+## [0.1.0] - 2026-02-17 (BETA)
+
+### Added
+- Initial beta release
+- Multi-cloud Terraform validation (AWS, Azure, GCP)
+- Policy-based compliance checking
+- Inline error reporting in editor
+- Command palette integration
+- Configurable policy paths
+- Multiple validation modes (validate-existing, ephemeral-sandbox)
+- Cloud provider auto-detection
+- Settings for customization
+- Validation on demand (workspace and file level)
+
+### Known Issues
+- Drift detection requires deployed resources
+- Some encryption rule checks need refinement
+- Performance not optimized for very large workspaces (>100 files)
+
+### Coming Soon
+- Auto-fix suggestions for violations
+- Real-time validation on typing
+- Quick fix integration
+- Status bar indicators
+- Report export functionality
+
+## [Unreleased]
+
+### Planned for 0.2.0
+- Auto-fix for common violations
+- Improved error messages
+- Performance optimizations
+- Better Azure authentication handling
+- Custom rule templates
+
+### Planned for 1.0.0 (GA)
+- Production-ready stability
+- Complete test coverage
+- Performance benchmarks
+- Comprehensive documentation
+- Enterprise features (SSO, audit logs)
+
+---
+
+## Version Strategy
+
+- **0.x.y** - Beta/Preview releases
+- **1.x.y** - General Availability (GA)
+- **x.0.0** - Major releases with breaking changes
+- **x.y.0** - Minor releases with new features
+- **x.y.z** - Patch releases with bug fixes

@@ -1,0 +1,220 @@
+version: "1.0"
+name: "Multi-Cloud Security and Compliance Policy"
+description: "Comprehensive policy for AWS, Azure, and GCP resources covering security, compliance, and best practices"
+
+rules:
+  # Tagging and Governance
+  - name: "required-tags"
+    description: "Ensure all resources have required tags"
+    severity: "error"
+    category: "compliance"
+    enabled: true
+    resource_types:
+      - "aws_*"
+      - "azurerm_*"
+      - "google_*"
+    conditions:
+      tags.required:
+        - "Environment"
+        - "Owner"
+        - "Project"
+    message: "Resources must have Environment, Owner, and Project tags"
+    remediation: "Add the required tags to your resource configuration"
+
+  # Encryption
+  - name: "encryption-at-rest"
+    description: "Ensure encryption at rest is enabled"
+    severity: "error"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "aws_s3_bucket"
+      - "aws_ebs_volume"
+      - "aws_rds_*"
+      - "azurerm_storage_account"
+      - "azurerm_managed_disk"
+      - "google_storage_bucket"
+      - "google_compute_disk"
+    conditions:
+      encryption.enabled: true
+    message: "Encryption at rest must be enabled"
+    remediation: "Enable server-side encryption for your resource"
+
+  # Public Access
+  - name: "block-public-access"
+    description: "Block public access to sensitive resources"
+    severity: "error"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "aws_s3_bucket"
+      - "aws_db_instance"
+      - "azurerm_storage_account"
+      - "azurerm_sql_server"
+      - "google_storage_bucket"
+      - "google_sql_database_instance"
+    conditions:
+      public_access.blocked: true
+    message: "Public access should be blocked"
+    remediation: "Configure the resource to block public access"
+
+  # Versioning
+  - name: "enable-versioning"
+    description: "Enable versioning for storage resources"
+    severity: "warning"
+    category: "compliance"
+    enabled: true
+    resource_types:
+      - "aws_s3_bucket"
+      - "google_storage_bucket"
+    conditions:
+      versioning.enabled: true
+    message: "Versioning should be enabled for data protection"
+    remediation: "Enable versioning in your bucket configuration"
+
+  # Logging
+  - name: "enable-logging"
+    description: "Enable logging for audit trail"
+    severity: "warning"
+    category: "compliance"
+    enabled: true
+    resource_types:
+      - "aws_s3_bucket"
+      - "aws_cloudtrail"
+      - "azurerm_storage_account"
+      - "google_storage_bucket"
+    conditions:
+      logging.enabled: true
+    message: "Logging should be enabled for audit purposes"
+    remediation: "Configure access logging or diagnostic settings"
+
+  # Backup Configuration
+  - name: "backup-enabled"
+    description: "Ensure backup is configured"
+    severity: "warning"
+    category: "reliability"
+    enabled: true
+    resource_types:
+      - "aws_db_instance"
+      - "aws_rds_cluster"
+      - "azurerm_sql_database"
+      - "google_sql_database_instance"
+    conditions:
+      backup.enabled: true
+    message: "Backup should be configured for data protection"
+    remediation: "Enable automated backups with appropriate retention period"
+
+  # Naming Convention
+  - name: "naming-convention"
+    description: "Enforce naming convention for resources"
+    severity: "info"
+    category: "governance"
+    enabled: true
+    resource_types:
+      - "aws_*"
+      - "azurerm_*"
+      - "google_*"
+    conditions:
+      naming.pattern: "^[a-z0-9-]+$"
+    message: "Resource names should follow the naming convention (lowercase, numbers, hyphens)"
+    remediation: "Rename the resource to match the pattern: lowercase letters, numbers, and hyphens only"
+
+  # IAM Best Practices
+  - name: "iam-least-privilege"
+    description: "Ensure IAM policies follow least privilege principle"
+    severity: "error"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "aws_iam_*"
+      - "azurerm_role_*"
+      - "google_project_iam_*"
+    conditions:
+      iam.least_privilege: true
+    message: "IAM policies should not use wildcard permissions"
+    remediation: "Specify explicit permissions instead of using wildcards"
+
+  # Network Security
+  - name: "use-private-subnet"
+    description: "Deploy resources in private subnets"
+    severity: "warning"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "aws_instance"
+      - "aws_db_instance"
+      - "azurerm_virtual_machine"
+      - "google_compute_instance"
+    conditions:
+      network.private_subnet: true
+    message: "Resources should be deployed in private subnets"
+    remediation: "Configure the resource to use a private subnet"
+
+  # AWS Specific Rules
+  - name: "aws-s3-block-public-acls"
+    description: "Block public ACLs on S3 buckets"
+    severity: "error"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "aws_s3_bucket"
+    conditions:
+      block_public_acls: true
+    message: "S3 bucket should block public ACLs"
+    remediation: "Set block_public_acls = true in aws_s3_bucket_public_access_block"
+
+  # Azure Specific Rules
+  - name: "azure-storage-https-only"
+    description: "Enforce HTTPS for Azure Storage"
+    severity: "error"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "azurerm_storage_account"
+    conditions:
+      enable_https_traffic_only: true
+    message: "Storage account should enforce HTTPS only"
+    remediation: "Set enable_https_traffic_only = true"
+
+  # GCP Specific Rules
+  - name: "gcp-storage-uniform-access"
+    description: "Use uniform bucket-level access for GCS"
+    severity: "warning"
+    category: "security"
+    enabled: true
+    resource_types:
+      - "google_storage_bucket"
+    conditions:
+      uniform_bucket_level_access: true
+    message: "GCS bucket should use uniform bucket-level access"
+    remediation: "Enable uniform_bucket_level_access in the bucket configuration"
+
+  # Cost Optimization
+  - name: "cost-tagging"
+    description: "Ensure cost center tag is present"
+    severity: "warning"
+    category: "cost"
+    enabled: true
+    resource_types:
+      - "aws_*"
+      - "azurerm_*"
+      - "google_*"
+    conditions:
+      tags.required:
+        - "CostCenter"
+    message: "Resources should have a CostCenter tag for billing"
+    remediation: "Add a CostCenter tag to track resource costs"
+
+  # Performance
+  - name: "database-multi-az"
+    description: "Enable multi-AZ for production databases"
+    severity: "warning"
+    category: "reliability"
+    enabled: false  # Enable for production only
+    resource_types:
+      - "aws_db_instance"
+      - "aws_rds_cluster"
+    conditions:
+      multi_az: true
+    message: "Production databases should use multi-AZ deployment"
+    remediation: "Set multi_az = true for high availability"

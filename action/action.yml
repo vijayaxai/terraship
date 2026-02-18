@@ -1,0 +1,140 @@
+name: 'Terraship Validate'
+description: 'Validate Terraform infrastructure with Terraship'
+author: 'Terraship'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  terraform-directory:
+    description: 'Directory containing Terraform files'
+    required: false
+    default: '.'
+  policy-path:
+    description: 'Path to Terraship policy file'
+    required: false
+    default: './policies/sample-policy.yml'
+  mode:
+    description: 'Validation mode: validate-existing or ephemeral-sandbox'
+    required: false
+    default: 'validate-existing'
+  cloud-provider:
+    description: 'Cloud provider (aws, azure, gcp) - auto-detect if not specified'
+    required: false
+    default: ''
+  output-format:
+    description: 'Output format: human, json, sarif'
+    required: false
+    default: 'human'
+  fail-on-error:
+    description: 'Fail the action if validation errors are found'
+    required: false
+    default: 'true'
+  terraship-version:
+    description: 'Terraship version to use'
+    required: false
+    default: 'latest'
+
+outputs:
+  validation-result:
+    description: 'Validation result (passed or failed)'
+  summary:
+    description: 'Validation summary in JSON format'
+  report:
+    description: 'Full validation report'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: latest
+
+    - name: Download Terraship
+      shell: bash
+      run: |
+        echo "Downloading Terraship ${{ inputs.terraship-version }}..."
+        if [ "${{ inputs.terraship-version }}" == "latest" ]; then
+          DOWNLOAD_URL="https://github.com/vijayaxai/terraship/releases/latest/download/terraship-linux-amd64"
+        else
+          DOWNLOAD_URL="https://github.com/vijayaxai/terraship/releases/download/${{ inputs.terraship-version }}/terraship-linux-amd64"
+        fi
+        curl -L -o /usr/local/bin/terraship "$DOWNLOAD_URL"
+        chmod +x /usr/local/bin/terraship
+        terraship --version
+
+    - name: Run Terraship Validation
+      id: validate
+      shell: bash
+      run: |
+        set +e
+        
+        ARGS=""
+        if [ -n "${{ inputs.cloud-provider }}" ]; then
+          ARGS="$ARGS --provider ${{ inputs.cloud-provider }}"
+        fi
+        
+        terraship validate "${{ inputs.terraform-directory }}" \
+          --policy "${{ inputs.policy-path }}" \
+          --mode "${{ inputs.mode }}" \
+          --output "${{ inputs.output-format }}" \
+          --output-file terraship-report.txt \
+          $ARGS
+        
+        EXIT_CODE=$?
+        
+        # Save outputs
+        if [ -f terraship-report.txt ]; then
+          REPORT=$(cat terraship-report.txt)
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+          echo "validation-result=passed" >> $GITHUB_OUTPUT
+        else
+          echo "validation-result=failed" >> $GITHUB_OUTPUT
+        fi
+        
+        # Generate JSON summary if not already JSON
+        if [ "${{ inputs.output-format }}" != "json" ]; then
+          terraship validate "${{ inputs.terraform-directory }}" \
+            --policy "${{ inputs.policy-path }}" \
+            --mode "${{ inputs.mode }}" \
+            --output json \
+            --output-file terraship-summary.json \
+            $ARGS || true
+        fi
+        
+        if [ -f terraship-summary.json ]; then
+          SUMMARY=$(cat terraship-summary.json)
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        fi
+        
+        # Fail if requested
+        if [ "${{ inputs.fail-on-error }}" == "true" ] && [ $EXIT_CODE -ne 0 ]; then
+          exit $EXIT_CODE
+        fi
+        
+        exit 0
+
+    - name: Upload Terraship Report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: terraship-report
+        path: |
+          terraship-report.txt
+          terraship-summary.json
+        retention-days: 30
+
+    - name: Upload SARIF Report
+      uses: github/codeql-action/upload-sarif@v2
+      if: inputs.output-format == 'sarif' && always()
+      with:
+        sarif_file: terraship-report.txt

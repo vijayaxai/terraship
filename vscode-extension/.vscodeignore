@@ -1,0 +1,28 @@
+# Files excluded from the extension package
+# Users will NOT see these files when they install
+
+# Development files
+.vscode/**
+.vscode-test/**
+src/**/*.ts
+*.map
+tsconfig.json
+.eslintrc.json
+
+# Build artifacts
+out/test/**
+node_modules/**/.bin/**
+
+# Documentation (keep only README and CHANGELOG)
+PUBLISHING.md
+
+# Testing
+**/*.test.js
+**/*.test.ts
+test/**
+coverage/**
+
+# Misc
+.gitignore
+.editorconfig
+*.vsix
