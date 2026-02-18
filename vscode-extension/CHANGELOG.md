@@ -5,6 +5,21 @@ All notable changes to the Terraship VS Code extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-02-18
+
+### Added
+- **Go Module Installation** - Users can now install CLI with `go install github.com/vijayaxai/terraship/cmd/terraship@latest`
+- **Output Format Documentation** - Added comprehensive guides for JSON, human-readable, and SARIF formats
+- **v1.0.0 Release Tag** - Go module properly versioned and published
+
+### Fixed
+- **CLI Import Paths** - Corrected imports from `terraship/terraship` to `vijayaxai/terraship`
+- **Source Repository** - All cmd/terraship files now properly committed to git
+
+### Changed
+- Updated README with output formats section and CLI installation examples
+- Enhanced documentation with format comparison
+
 ## [0.1.5] - 2026-02-18
 
 ### Changed

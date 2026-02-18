@@ -4,7 +4,7 @@
 
 ## ⚠️ Beta Notice
 
-This is a **BETA** release (version 0.1.0). Features are functional but may have rough edges. We welcome your feedback!
+This is a **BETA** release (version 0.1.6). Features are functional but may have rough edges. We welcome your feedback!
 
 ## 🌟 Features
 
@@ -36,35 +36,52 @@ code --install-extension terraship-vscode-0.1.0.vsix
 
 The extension needs the Terraship CLI to work. Without it, you'll get `spawn terraship ENOENT` error.
 
-### Windows
+### Option 1: Go Install (Recommended)
+
+If you have Go 1.16+ installed:
+
+```bash
+go install github.com/vijayaxai/terraship/cmd/terraship@latest
+```
+
+Binary installs to `$GOPATH/bin` (usually `~/go/bin` or `C:\Users\<username>\go\bin`). Make sure it's in PATH.
+
+Verify:
+```bash
+terraship --version
+```
+
+### Option 2: Download Pre-Built Binary
+
+#### Windows
 ```powershell
-# Download the CLI
 Invoke-WebRequest -Uri "https://github.com/vijayaxai/terraship/releases/latest/download/terraship-windows-amd64.exe" -OutFile "$env:USERPROFILE\bin\terraship.exe"
 
 # Add to PATH or set full path in extension settings
 # In VS Code: "terraship.executablePath": "C:\\Users\\YourName\\bin\\terraship.exe"
 
-# Verify installation
 terraship --version
 ```
 
-### macOS / Linux
+#### macOS / Linux
 ```bash
-# Download and install
 curl -L https://github.com/vijayaxai/terraship/releases/latest/download/terraship-$(uname -s)-$(uname -m) -o /usr/local/bin/terraship
 chmod +x /usr/local/bin/terraship
 
-# Verify installation
 terraship --version
 ```
 
-### Build from Source
+### Option 3: Build from Source
+
 ```bash
 git clone https://github.com/vijayaxai/terraship
 cd terraship
-go build -o bin/terraship
+go build -o bin/terraship ./cmd/terraship
 
-# Copy to PATH location
+# Copy to PATH location or use full path in settings
+cp bin/terraship /usr/local/bin/  # macOS/Linux
+# or
+copy bin\terraship.exe C:\Users\<username>\bin\  # Windows
 ```
 
 ## 🚀 Quick Start
@@ -132,6 +149,38 @@ Results appear in:
 - **Problems Panel** - See violations with line numbers
 - **Output Panel** - View detailed validation report
 - **Inline** - Hover over code to see issues
+
+## 📊 Output Formats
+
+Terraship generates validation reports in three formats:
+
+### Human-Readable (Default)
+Console output with formatted summary and violation details.
+
+### JSON Format
+Structured format for programmatic access and CI/CD integration:
+```json
+{
+  "total_resources": 15,
+  "passed_resources": 12,
+  "failed_resources": 3,
+  "resources": [...]
+}
+```
+
+### SARIF Format
+Standardized machine-readable format compatible with:
+- GitHub Code Scanning
+- GitLab Security Scanning
+- Azure DevOps
+- Other SARIF-compatible tools
+
+**Example CLI usage:**
+```bash
+terraship validate ./terraform --output json --output-file report.json
+terraship validate ./terraform --output sarif --output-file report.sarif
+terraship validate ./terraform --output human
+```
 
 ## ⚙️ Configuration
 
