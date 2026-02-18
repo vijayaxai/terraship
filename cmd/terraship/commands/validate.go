@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/terraship/terraship/internal/core"
-	"github.com/terraship/terraship/internal/output"
+	"github.com/vijayaxai/terraship/internal/core"
+	"github.com/vijayaxai/terraship/internal/output"
 )
 
 var validateCmd = &cobra.Command{

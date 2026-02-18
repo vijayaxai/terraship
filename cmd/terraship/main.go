@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/terraship/terraship/cmd/terraship/commands"
+	"github.com/vijayaxai/terraship/cmd/terraship/commands"
 )
 
 var (

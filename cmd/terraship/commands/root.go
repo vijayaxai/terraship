@@ -24,7 +24,7 @@ It supports AWS, Azure, and GCP with two modes:
   - validate-existing: Validates existing infrastructure without applying changes
   - ephemeral-sandbox: Creates temporary infrastructure, validates, and destroys
 
-For more information, visit: https://github.com/terraship/terraship`,
+For more information, visit: https://github.com/vijayaxai/terraship`,
 	Version: Version,
 }
 
