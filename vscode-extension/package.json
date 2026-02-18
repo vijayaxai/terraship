@@ -2,7 +2,7 @@
   "name": "terraship-vscode",
   "displayName": "Terraship",
   "description": "Multi-cloud Terraform validation and policy checking",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "terraship",
   "icon": "icon.png",
   "repository": {
@@ -83,6 +83,26 @@
           "type": "string",
           "default": "terraship",
           "description": "Path to Terraship executable"
+        },
+        "terraship.azureSubscriptionId": {
+          "type": "string",
+          "default": "",
+          "description": "Azure Subscription ID (set here or via environment variable AZURE_SUBSCRIPTION_ID)"
+        },
+        "terraship.azureTenantId": {
+          "type": "string",
+          "default": "",
+          "description": "Azure Tenant ID (set here or via environment variable AZURE_TENANT_ID)"
+        },
+        "terraship.awsProfile": {
+          "type": "string",
+          "default": "",
+          "description": "AWS Profile name to use (set here or via environment variable AWS_PROFILE)"
+        },
+        "terraship.gcpProject": {
+          "type": "string",
+          "default": "",
+          "description": "GCP Project ID (set here or via environment variable GCP_PROJECT)"
         }
       }
     }

@@ -75,8 +75,33 @@ async function runValidation(directory?: string, silent: boolean = false) {
         args.push('--provider', cloudProvider);
     }
 
+    // Build environment with user-configured credentials
+    const env = Object.assign({}, process.env);
+    
+    // Azure
+    const azureSubId = config.get<string>('azureSubscriptionId');
+    if (azureSubId && !env.AZURE_SUBSCRIPTION_ID) {
+        env.AZURE_SUBSCRIPTION_ID = azureSubId;
+    }
+    const azureTenantId = config.get<string>('azureTenantId');
+    if (azureTenantId && !env.AZURE_TENANT_ID) {
+        env.AZURE_TENANT_ID = azureTenantId;
+    }
+    
+    // AWS
+    const awsProfile = config.get<string>('awsProfile');
+    if (awsProfile && !env.AWS_PROFILE) {
+        env.AWS_PROFILE = awsProfile;
+    }
+    
+    // GCP
+    const gcpProject = config.get<string>('gcpProject');
+    if (gcpProject && !env.GCP_PROJECT) {
+        env.GCP_PROJECT = gcpProject;
+    }
+
     try {
-        const result = await execAsync(executablePath, args, { cwd: workspaceFolder.uri.fsPath });
+        const result = await execAsync(executablePath, args, { cwd: workspaceFolder.uri.fsPath, env });
         
         // Read and parse the report
         const reportPath = path.join(targetDir, 'terraship-report.json');
@@ -140,8 +165,33 @@ async function runInit() {
 
     vscode.window.showInformationMessage('Initializing Terraship policy...');
 
+    // Build environment with user-configured credentials
+    const env = Object.assign({}, process.env);
+    
+    // Azure
+    const azureSubId = config.get<string>('azureSubscriptionId');
+    if (azureSubId && !env.AZURE_SUBSCRIPTION_ID) {
+        env.AZURE_SUBSCRIPTION_ID = azureSubId;
+    }
+    const azureTenantId = config.get<string>('azureTenantId');
+    if (azureTenantId && !env.AZURE_TENANT_ID) {
+        env.AZURE_TENANT_ID = azureTenantId;
+    }
+    
+    // AWS
+    const awsProfile = config.get<string>('awsProfile');
+    if (awsProfile && !env.AWS_PROFILE) {
+        env.AWS_PROFILE = awsProfile;
+    }
+    
+    // GCP
+    const gcpProject = config.get<string>('gcpProject');
+    if (gcpProject && !env.GCP_PROJECT) {
+        env.GCP_PROJECT = gcpProject;
+    }
+
     try {
-        await execAsync(executablePath, ['init'], { cwd: workspaceFolder.uri.fsPath });
+        await execAsync(executablePath, ['init'], { cwd: workspaceFolder.uri.fsPath, env });
         vscode.window.showInformationMessage('Terraship policy initialized successfully');
     } catch (error: any) {
         const errorMsg = error.message || String(error);

@@ -10,15 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Go Module Installation** - Users can now install CLI with `go install github.com/vijayaxai/terraship/cmd/terraship@latest`
 - **Output Format Documentation** - Added comprehensive guides for JSON, human-readable, and SARIF formats
+- **Credential Configuration Settings** - Added new settings for Azure, AWS, and GCP credentials:
+  - `terraship.azureSubscriptionId` - Azure Subscription ID
+  - `terraship.azureTenantId` - Azure Tenant ID
+  - `terraship.awsProfile` - AWS Profile name
+  - `terraship.gcpProject` - GCP Project ID
 - **v1.0.0 Release Tag** - Go module properly versioned and published
 
 ### Fixed
 - **CLI Import Paths** - Corrected imports from `terraship/terraship` to `vijayaxai/terraship`
 - **Source Repository** - All cmd/terraship files now properly committed to git
+- **Extension Independence** - Extension no longer depends on terraship project folder structure
 
 ### Changed
 - Updated README with output formats section and CLI installation examples
 - Enhanced documentation with format comparison
+- Extension now passes configured credentials to CLI automatically
 
 ## [0.1.5] - 2026-02-18
 

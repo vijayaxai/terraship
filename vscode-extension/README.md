@@ -191,6 +191,59 @@ terraship validate ./terraform --output human
 | `terraship.mode` | Validation mode | `validate-existing` |
 | `terraship.validateOnSave` | Auto-validate on file save | `false` |
 | `terraship.executablePath` | Path to Terraship CLI executable | `terraship` |
+| `terraship.azureSubscriptionId` | Azure Subscription ID | `""` |
+| `terraship.azureTenantId` | Azure Tenant ID | `""` |
+| `terraship.awsProfile` | AWS Profile name | `""` |
+| `terraship.gcpProject` | GCP Project ID | `""` |
+
+## 🔐 Credential Configuration
+
+### Azure Credentials
+
+Set in VS Code Settings (Ctrl+,):
+```json
+{
+  "terraship.azureSubscriptionId": "d30ec219-d601-414b-98b6-230b6e520d37",
+  "terraship.azureTenantId": "2111de49-6a33-4187-af6d-96575525e6ef"
+}
+```
+
+Or via environment variables (takes precedence):
+```bash
+$env:AZURE_SUBSCRIPTION_ID="your-id"
+$env:AZURE_TENANT_ID="your-id"
+```
+
+### AWS Credentials
+
+Set in VS Code Settings:
+```json
+{
+  "terraship.awsProfile": "my-profile"
+}
+```
+
+Or via environment variables:
+```bash
+$env:AWS_PROFILE="my-profile"
+$env:AWS_ACCESS_KEY_ID="your-key"
+$env:AWS_SECRET_ACCESS_KEY="your-secret"
+```
+
+### GCP Credentials
+
+Set in VS Code Settings:
+```json
+{
+  "terraship.gcpProject": "my-project-id"
+}
+```
+
+Or via environment variables:
+```bash
+$env:GCP_PROJECT="my-project-id"
+$env:GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
+```
 
 ### Troubleshooting: "spawn terraship ENOENT"
 
