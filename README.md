@@ -137,6 +137,78 @@ terraship validate ./terraform --provider aws --output json
 terraship validate ./terraform --output json --output-file report.json
 ```
 
+## 🎯 Getting Started with a New Terraform Project
+
+### Scenario: You have a new Terraform project and want to validate it with Terraship
+
+**Step 1: Navigate to your Terraform project**
+```bash
+cd your-terraform-project
+ls -la
+# You should see .tf files here
+```
+
+**Step 2: Create policy file**
+```bash
+terraship init
+```
+✅ This creates: `policies/terraship-policy.yml` with 8 security/compliance rules
+
+**Step 3: Set up cloud credentials** (Choose one method)
+
+**Option A - Azure CLI (Easiest):**
+```bash
+az login
+```
+
+**Option B - Environment Variables:**
+```powershell
+# PowerShell
+$env:AZURE_SUBSCRIPTION_ID = "your-subscription-id"
+```
+
+**Step 4: Run validation from terminal**
+```bash
+terraship validate ./terraform
+```
+📊 View the validation report in terminal
+
+**Step 5 (Optional): Use VS Code Extension for continuous validation**
+
+1. Install extension: Open VS Code → Extensions (Ctrl+Shift+X) → Search "Terraship" → Install
+2. Configure extension: Press `Ctrl + ,` → Search "terraship" → Set your cloud provider
+3. Validate in editor: 
+   - Press `Ctrl+Shift+P` → Type "Terraship: Validate"
+   - Or set `"terraship.validateOnSave": true` for auto-validation
+
+---
+
+## 📋 Policy File Explained
+
+When you run `terraship init`, it creates a policy file with built-in rules:
+
+```yaml
+# policies/terraship-policy.yml
+
+version: "1.0"
+name: "Multi-Cloud Security and Compliance Policy"
+description: "Comprehensive policy for AWS, Azure, and GCP resources"
+
+rules:
+  - name: "required-tags"           # ← All resources must have tags
+  - name: "encryption-at-rest"      # ← All storage must be encrypted
+  - name: "block-public-access"     # ← No public access to resources
+  - name: "iam-least-privilege"     # ← No wildcard IAM permissions
+  - name: "enable-logging"          # ← Enable audit logs
+  - name: "use-private-subnet"      # ← Use private networks
+  - name: "backup-enabled"          # ← Enable backups
+  - name: "enable-versioning"       # ← Enable version control
+```
+
+**You can customize this file** to add/remove rules for your organization's standards.
+
+
+
 ## 📝 Policy Configuration
 
 Create a `policy.yml` file to define validation rules:
