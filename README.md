@@ -35,6 +35,89 @@ Invoke-WebRequest -Uri "https://github.com/vijayaxai/terraship/releases/latest/d
 go install github.com/vijayaxai/terraship/cmd/terraship@latest
 ```
 
+### Initialize Policy
+
+Before validating, create a policy file:
+
+```bash
+# Create sample policy in current directory
+terraship init
+
+# Or in a specific directory
+terraship init ./my-project
+```
+
+This creates `policies/terraship-policy.yml` with comprehensive security and compliance rules.
+
+### Setup Cloud Credentials
+
+Terraship needs credentials to connect to your cloud provider. Choose the method that works best for you:
+
+#### Option 1: Azure CLI (Recommended for Azure)
+
+```bash
+# Login with Azure CLI
+az login
+
+# Export subscription ID (optional, but recommended)
+# PowerShell
+$env:AZURE_SUBSCRIPTION_ID = "your-subscription-id"
+
+# Bash / macOS / Linux
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+
+# Validate
+terraship validate ./terraform
+```
+
+#### Option 2: Environment Variables
+
+**Azure:**
+```bash
+# PowerShell
+$env:AZURE_SUBSCRIPTION_ID = "d30ec219-d601-414b-98b6-230b6e520d37"
+$env:AZURE_TENANT_ID = "2111de49-6a33-4187-af6d-96575525e6ef"
+
+# Bash / macOS / Linux
+export AZURE_SUBSCRIPTION_ID="d30ec219-d601-414b-98b6-230b6e520d37"
+export AZURE_TENANT_ID="2111de49-6a33-4187-af6d-96575525e6ef"
+```
+
+**AWS:**
+```bash
+# PowerShell
+$env:AWS_REGION = "us-east-1"
+$env:AWS_PROFILE = "my-profile"  # Or use AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+
+# Bash / macOS / Linux
+export AWS_REGION="us-east-1"
+export AWS_PROFILE="my-profile"
+```
+
+**GCP:**
+```bash
+# PowerShell
+$env:GCP_PROJECT = "my-gcp-project"
+$env:GOOGLE_APPLICATION_CREDENTIALS = "$env:USERPROFILE\.config\gcloud\application_default_credentials.json"
+
+# Bash / macOS / Linux
+export GCP_PROJECT="my-gcp-project"
+export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/application_default_credentials.json"
+```
+
+#### Option 3: VS Code Extension Settings
+
+If using the VS Code extension, configure credentials in your settings:
+
+```json
+{
+  "terraship.azureSubscriptionId": "d30ec219-d601-414b-98b6-230b6e520d37",
+  "terraship.azureTenantId": "2111de49-6a33-4187-af6d-96575525e6ef",
+  "terraship.awsProfile": "my-profile",
+  "terraship.gcpProject": "my-gcp-project"
+}
+```
+
 ### Basic Usage
 
 ```bash
@@ -42,13 +125,16 @@ go install github.com/vijayaxai/terraship/cmd/terraship@latest
 terraship validate ./terraform
 
 # Validate existing infrastructure (no apply)
-terraship validate ./terraform --mode validate-existing --policy ./my-policy.yml
+terraship validate ./terraform --mode validate-existing --policy ./policies/terraship-policy.yml
 
 # Create ephemeral sandbox for testing
 terraship validate ./terraform --mode ephemeral-sandbox
 
 # Specify cloud provider and output format
 terraship validate ./terraform --provider aws --output json
+
+# Save results to file
+terraship validate ./terraform --output json --output-file report.json
 ```
 
 ## 📝 Policy Configuration
@@ -228,25 +314,62 @@ terraship/
 └── action/                # GitHub Action
 ```
 
+## 🔧 Prerequisites
+
+Before running Terraship validation, ensure you have:
+
+1. **Terraform** installed and in PATH
+   - Verify: `terraform -version`
+   - If terraform is not in PATH, add it or use `terraform` command directly
+
+2. **Cloud CLI and Authentication**
+   - **Azure**: `az login` (install [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli))
+   - **AWS**: `aws configure` (install [AWS CLI](https://aws.amazon.com/cli/))
+   - **GCP**: `gcloud auth application-default login` (install [Google Cloud SDK](https://cloud.google.com/sdk/docs/install))
+
+3. **SSH Key** (for certain resource types)
+   - Most cloud deployments need SSH keys
+   - Generate with: `ssh-keygen -t rsa -b 4096`
+
 ## 🔧 Configuration
 
 ### Environment Variables
 
+For more details, see the **Setup Cloud Credentials** section in Quick Start above.
+
+#### Azure
+- `AZURE_SUBSCRIPTION_ID` - Azure subscription ID *(required)*
+- `AZURE_TENANT_ID` - Azure tenant ID *(optional, recommended)*
+- `AZURE_CLIENT_ID` - Service principal client ID *(for non-interactive auth)*
+- `AZURE_CLIENT_SECRET` - Service principal secret *(for non-interactive auth)*
+- `AZURE_CLOUD_ENVIRONMENT` - Azure cloud environment (e.g., `AzurePublicCloud`, `AzureUSGovernmentCloud`)
+
 #### AWS
-- `AWS_REGION` - AWS region
+- `AWS_REGION` - AWS region (default: `us-east-1`)
 - `AWS_PROFILE` - AWS profile name
 - `AWS_ACCESS_KEY_ID` - AWS access key
 - `AWS_SECRET_ACCESS_KEY` - AWS secret key
 
-#### Azure
-- `AZURE_SUBSCRIPTION_ID` - Azure subscription ID
-- `AZURE_TENANT_ID` - Azure tenant ID
-- `AZURE_CLIENT_ID` - Service principal client ID
-- `AZURE_CLIENT_SECRET` - Service principal secret
-
 #### GCP
-- `GCP_PROJECT` or `GOOGLE_CLOUD_PROJECT` - GCP project ID
+- `GCP_PROJECT` or `GOOGLE_CLOUD_PROJECT` - GCP project ID *(required)*
 - `GOOGLE_APPLICATION_CREDENTIALS` - Path to service account key
+- `GOOGLE_CLOUD_REGION` - GCP region
+
+**Example: Setting Environment Variables**
+
+PowerShell:
+```powershell
+$env:AZURE_SUBSCRIPTION_ID = "d30ec219-d601-414b-98b6-230b6e520d37"
+$env:PATH = "C:\terraform;" + $env:PATH  # Add Terraform to PATH
+terraship validate .
+```
+
+Bash / macOS / Linux:
+```bash
+export AZURE_SUBSCRIPTION_ID="d30ec219-d601-414b-98b6-230b6e520d37"
+export PATH="/usr/local/terraform:$PATH"  # Add Terraform to PATH
+terraship validate .
+```
 
 ## 📊 Output Formats
 

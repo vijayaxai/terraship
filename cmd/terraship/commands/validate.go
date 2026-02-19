@@ -81,7 +81,13 @@ func runValidate(cmd *cobra.Command, args []string) error {
 
 	// Validate policy file exists
 	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
-		return fmt.Errorf("policy file does not exist: %s", policyPath)
+		return fmt.Errorf("policy file does not exist: %s\n\n"+
+			"Create a policy file by running:\n"+
+			"  terraship init\n\n"+
+			"Or specify a custom policy with:\n"+
+			"  terraship validate . --policy ./your-policy.yml\n\n"+
+			"For help with policy files, see:\n"+
+			"  terraship validate --help", policyPath)
 	}
 
 	// Validate mode
