@@ -5,6 +5,47 @@ All notable changes to the Terraship VS Code extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-02-19
+
+### Added
+- **terraship init Command** - CLI now has `terraship init` command to automatically generate policy files
+  - Creates `policies/terraship-policy.yml` with 8 comprehensive security rules
+  - Supports custom directory and filename options
+  - Shows helpful next steps after policy creation
+
+### Fixed
+- **Policy File Error Messages** - Enhanced error guidance when policy file is missing:
+  - Error message now suggests running `terraship init`
+  - Provides examples of creating custom policies
+  - Links to validation help documentation
+
+### Changed
+- Updated README with comprehensive Prerequisites section
+- Added clear environment variable documentation for all cloud providers (Azure, AWS, GCP)
+- Included PowerShell and Bash examples for credential setup
+- Reorganized Quick Start section with policy initialization first
+- Improved Configuration section with marked required vs optional variables
+- Added VS Code Extension credential configuration in main README
+
+### Documentation
+- Added Prerequisites section covering Terraform, Cloud CLI, and SSH key setup
+- Comprehensive credential setup methods in Quick Start (Option 1, 2, 3)
+- Clarified environment variable requirements per cloud provider
+- Added PATH configuration troubleshooting tips
+
+## [0.1.7] - 2026-02-18
+
+### Added
+- **Cloud Credential Configuration Settings** - Added new settings for Azure, AWS, and GCP credentials:
+  - `terraship.azureSubscriptionId` - Azure Subscription ID
+  - `terraship.azureTenantId` - Azure Tenant ID
+  - `terraship.awsProfile` - AWS Profile name
+  - `terraship.gcpProject` - GCP Project ID
+
+### Changed
+- Extension now passes configured credentials to CLI automatically
+- Updated documentation with credential setting examples
+
 ## [0.1.6] - 2026-02-18
 
 ### Added
