@@ -14,7 +14,11 @@
 - 🎯 **Two Validation Modes**:
   - `validate-existing`: Validate existing infrastructure without applying changes
   - `ephemeral-sandbox`: Create temporary infrastructure, validate, and destroy
-- 📊 **Multiple Output Formats** - Human-readable, JSON, and SARIF
+- 📊 **Interactive Reports** - HTML, PDF, JSON, and SARIF export formats with:
+  - Compliance dashboard with score tracking
+  - Expandable resource details and quick fixes
+  - Timeline charts and comparison views
+  - GitHub Code Scanning integration (SARIF)
 - 🧪 **Terratest Integration** - First-class Go API for testing
 - 🔌 **VS Code Extension** - Validate from your editor
 - ⚡ **GitHub Action** - Integrate into CI/CD pipelines
@@ -447,9 +451,113 @@ export PATH="/usr/local/terraform:$PATH"  # Add Terraform to PATH
 terraship validate .
 ```
 
-## 📊 Output Formats
+## 📊 Reporting
+
+Terraship supports multiple output formats to meet your team's needs:
+
+### Generate Reports
+
+```bash
+# Interactive HTML Report
+terraship validate ./terraform --output html
+# Creates: terraship-report.html (open in any web browser)
+
+# PDF Report (requires wkhtmltopdf)
+terraship validate ./terraform --output pdf
+# Creates: terraship-report.pdf
+
+# JSON Export (for CI/CD pipelines)
+terraship validate ./terraform --output json
+# Creates: terraship-report.json
+
+# SARIF Format (for GitHub Code Scanning)
+terraship validate ./terraform --output sarif
+# Creates: terraship-report.sarif (upload to GitHub)
+
+# Multiple formats at once
+terraship validate ./terraform --output html,pdf,json
+
+# Custom output filename
+terraship validate ./terraform --output html --output-file my-report.html
+```
+
+### Advanced Features
+
+```bash
+# Include validation history (timeline of past runs)
+terraship validate ./terraform --output html --include-history
+
+# Compare with previous validation
+terraship validate ./terraform --output html --compare previous-report.json
+
+# Dark mode and charts in HTML report
+terraship validate ./terraform --output html --html-advanced
+```
+
+### HTML Report Features
+- 🎨 **Interactive & Responsive** - View on desktop or mobile
+- 🔍 **Searchable & Filterable** - Find resources by status
+- 📈 **Compliance Dashboard** - See score at a glance
+- 📊 **Comparison View** - Track improvements over time
+- 💾 **Print-Friendly** - Export to PDF from browser
+- 🌙 **Dark Mode** (advanced) - Better for night viewing
+- ⏱️ **Timeline Charts** (advanced) - Visualize history
+
+### PDF Reports
+
+To generate native PDF reports, install wkhtmltopdf:
+
+**macOS:**
+```bash
+brew install wkhtmltopdf
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install wkhtmltopdf
+```
+
+**Windows:**
+```powershell
+choco install wkhtmltopdf
+# Or download from: https://wkhtmltopdf.org/
+```
+
+If `wkhtmltopdf` is not installed, Terraship will automatically fall back to HTML export with print-to-PDF instructions.
+
+### Integration Examples
+
+**GitHub Actions - Upload SARIF to Code Scanning:**
+```yaml
+- name: Validate with Terraship
+  run: terraship validate ./terraform --output sarif
+
+- name: Upload to Code Scanning
+  uses: github/codeql-action/upload-sarif@v2
+  with:
+    sarif_file: terraship-report.sarif
+```
+
+**Save HTML report as artifact:**
+```yaml
+- name: Validate
+  run: terraship validate ./terraform --output html --output-file report.html
+
+- name: Upload Report
+  uses: actions/upload-artifact@v3
+  with:
+    name: validation-report
+    path: report.html
+```
+
+For more details, see [docs/ADVANCED-REPORTING.md](docs/ADVANCED-REPORTING.md).
+
+## 📋 Output Formats
+
+Terraship supports multiple output formats for different use cases:
 
 ### Human (Default)
+Terminal-friendly colored output with compliance summary:
 ```
 ═══════════════════════════════════════════════════════════════
                     TERRASHIP VALIDATION REPORT                  
@@ -460,24 +568,34 @@ SUMMARY:
   ✓ Passed:           12
   ✗ Failed:           3
   ⚠ Warnings:         2
-  ⨯ Errors:           0
-  ↔ Drift Detected:   1
 
 ✗ VALIDATION FAILED
+
+📊 Compliance Score: 80.0%
+⏱  Validation completed: 2026-02-19 11:15 AM
 ```
 
+### HTML
+Interactive web-based report with expandable details, filtering, and compliance dashboard.
+
+### PDF
+Professional PDF report (requires `wkhtmltopdf`; falls back to HTML export if not available).
+
 ### JSON
+Machine-readable format for CI/CD integration:
 ```json
 {
   "total_resources": 15,
   "passed_resources": 12,
   "failed_resources": 3,
-  "reports": [...]
+  "warning_resources": 2,
+  "compliance_score": 80.0,
+  "resources": [...]
 }
 ```
 
 ### SARIF
-SARIF 2.1.0 format for integration with GitHub Code Scanning and other tools.
+[SARIF 2.1.0](https://sarifweb.azurewebsites.net/) format for GitHub Code Scanning and security tools.
 
 ## 🤝 Contributing
 
