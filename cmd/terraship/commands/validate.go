@@ -238,25 +238,21 @@ func generateValidationReport(format string, results *output.ValidationResult, p
 
 // generateHTMLReport creates HTML report
 func generateHTMLReport(results *output.ValidationResult, previousResults *output.ValidationResult) error {
-	reporter := output.NewHtmlReporter()
-
-	// Prepare report data
-	reportData := output.PrepareReportData(results, previousResults)
-
 	// Generate HTML
-	html, err := reporter.GenerateHTML(reportData)
+	html, err := output.GenerateHTML(results, includeHistory, previousResults)
 	if err != nil {
+		fmt.Printf("❌ Error generating html report: %v\n", err)
 		return err
 	}
 
 	// Determine output file
 	outFile := outputFile
 	if outFile == "" {
-		outFile = "terraship-report.html"
+		outFile = "report.html"
 	}
 
-	// Save HTML
-	if err := reporter.SaveHTML(html, outFile); err != nil {
+	// Save HTML to file
+	if err := os.WriteFile(outFile, []byte(html), 0644); err != nil {
 		return err
 	}
 
@@ -270,33 +266,30 @@ func generateHTMLReport(results *output.ValidationResult, previousResults *outpu
 
 // generatePDFReport creates PDF report
 func generatePDFReport(results *output.ValidationResult, previousResults *output.ValidationResult) error {
-	reporter := output.NewPDFReporter()
+	// For now, generate HTML and inform user to export as PDF from browser
+	html, err := output.GenerateHTML(results, includeHistory, previousResults)
+	if err != nil {
+		return err
+	}
 
-	// Prepare report data
-	reportData := output.PrepareReportData(results, previousResults)
-
-	// Determine output file
+	// Save HTML with .pdf extension suggestion
 	outFile := outputFile
 	if outFile == "" {
-		outFile = "terraship-report.pdf"
+		outFile = "report.html"
 	}
 
-	// Try to generate PDF
-	err := reporter.GeneratePDF(reportData, outFile)
-	if err != nil {
-		// Fallback: Generate HTML with .pdf extension instruction
-		colorYellow := "\033[33m"
-		colorReset := "\033[0m"
-		fmt.Printf("%s⚠%s PDF generation skipped - install wkhtmltopdf for native PDF support\n", colorYellow, colorReset)
-		fmt.Println(output.GetPDFInstallInstructions())
-
-		// Still generate HTML report instead
-		return generateHTMLReport(results, previousResults)
+	if err := os.WriteFile(outFile, []byte(html), 0644); err != nil {
+		return err
 	}
 
-	colorGreen := "\033[32m"
+	colorYellow := "\033[93m"
 	colorReset := "\033[0m"
-	fmt.Printf("%s✓%s PDF report generated: %s\n", colorGreen, colorReset, outFile)
+	fmt.Printf("%s⚠%s PDF export requires wkhtmltopdf or browser export\n", colorYellow, colorReset)
+	fmt.Printf("  HTML report saved: %s\n", outFile)
+	fmt.Printf("  To convert to PDF:\n")
+	fmt.Printf("    1. Open in browser: open %s\n", outFile)
+	fmt.Printf("    2. Press Ctrl+P (or Cmd+P) and save as PDF\n")
+	fmt.Printf("    OR install wkhtmltopdf: brew install wkhtmltopdf (macOS)\n")
 
 	return nil
 }

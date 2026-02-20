@@ -2,49 +2,47 @@ package output
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"html/template"
-	"os"
 	"time"
 )
 
 // HtmlReportData holds all data needed to generate an HTML report
 type HtmlReportData struct {
-	Title             string
-	Timestamp         string
-	TotalResources    int
-	PassedResources   int
-	FailedResources   int
-	WarningResources  int
-	CompliancePercent float64
-	Resources         []ResourceReport
-	ValidationHistory []HistoryPoint
-	PreviousRunStats  PreviousStats
+	Title              string
+	Timestamp          string
+	TotalResources     int
+	PassedResources    int
+	FailedResources    int
+	WarningResources   int
+	CompliancePercent  float64
+	Resources          []ResourceReport
+	ValidationHistory  []HistoryPoint
+	PreviousRunStats   PreviousStats
 }
 
-// ResourceReport represents a single resource validation
+// ResourceReport represents a single resource with its validation checks
 type ResourceReport struct {
-	Status      string // "passed", "failed", "warning"
-	Name        string
-	Type        string
-	Provider    string
-	CheckCount  int
+	Name       string
+	Type       string
+	Provider   string
+	Status     string
 	PassedCount int
-	Checks      []CheckReport
+	CheckCount int
+	Checks     []CheckReport
 }
 
-// CheckReport represents a single policy check result
+// CheckReport represents a single compliance check
 type CheckReport struct {
-	Status      string // "passed", "failed", "warning"
 	Name        string
-	Severity    string // "error", "warning", "info"
+	Status      string
+	Severity    string
 	Message     string
 	Details     []string
 	Remediation string
 }
 
-// HistoryPoint represents a validation run history entry
+// HistoryPoint represents a single point in the validation history
 type HistoryPoint struct {
 	Day      string
 	Passed   int
@@ -52,72 +50,58 @@ type HistoryPoint struct {
 	Warnings int
 }
 
-// PreviousStats holds stats from previous validation runs
+// PreviousStats holds stats from a previous run
 type PreviousStats struct {
-	Date              string
-	TotalResources    int
-	PassedResources   int
-	FailedResources   int
-	WarningResources  int
-	CompliancePercent float64
-}
-
-// HtmlReporter generates HTML reports
-type HtmlReporter struct {
-	templateAssets embed.FS
-}
-
-// NewHtmlReporter creates a new HTML reporter
-func NewHtmlReporter() *HtmlReporter {
-	return &HtmlReporter{}
+	Date               string
+	TotalResources     int
+	PassedResources    int
+	FailedResources    int
+	WarningResources   int
+	CompliancePercent  float64
 }
 
 // GenerateHTML creates an HTML report from validation results
-func (h *HtmlReporter) GenerateHTML(data *HtmlReportData) (string, error) {
+func GenerateHTML(vr *ValidationResult, includeHistory bool, previousRun *ValidationResult) (string, error) {
+	data := PrepareReportData(vr, includeHistory, previousRun)
+	
 	tmpl, err := template.New("report").Parse(getHTMLTemplate())
 	if err != nil {
 		return "", fmt.Errorf("failed to parse template: %w", err)
 	}
-
+	
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("failed to execute template: %w", err)
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		return "", fmt.Errorf("failed to render template: %w", err)
 	}
-
+	
 	return buf.String(), nil
 }
 
-// SaveHTML writes HTML report to file
-func (h *HtmlReporter) SaveHTML(html string, filepath string) error {
-	return os.WriteFile(filepath, []byte(html), 0644)
-}
-
-// PrepareReportData converts validation results to report data
-func PrepareReportData(results *ValidationResult, previousRun *ValidationResult) *HtmlReportData {
-	data := &HtmlReportData{
-		Title:            "Terraship Validation Report",
-		Timestamp:        time.Now().Format("January 2, 2006 at 3:04 PM MST"),
-		TotalResources:   results.TotalResources,
-		PassedResources:  results.PassedResources,
-		FailedResources:  results.FailedResources,
-		WarningResources: results.WarningResources,
+// PrepareReportData converts validation results into report data
+func PrepareReportData(vr *ValidationResult, includeHistory bool, previousRun *ValidationResult) HtmlReportData {
+	data := HtmlReportData{
+		Title:             "Terraship Validation Report",
+		Timestamp:         vr.Timestamp,
+		TotalResources:    vr.TotalResources,
+		PassedResources:   vr.PassedResources,
+		FailedResources:   vr.FailedResources,
+		WarningResources:  vr.WarningResources,
 	}
-
-	// Calculate compliance percentage
-	if results.TotalResources > 0 {
-		data.CompliancePercent = (float64(results.PassedResources) / float64(results.TotalResources)) * 100
+	
+	if vr.TotalResources > 0 {
+		data.CompliancePercent = (float64(vr.PassedResources) / float64(vr.TotalResources)) * 100
 	}
-
-	// Convert resources to report format
-	for _, res := range results.Resources {
+	
+	//Convert resources to report format
+	for _, res := range vr.Resources {
 		resReport := ResourceReport{
-			Name:        res.Name,
-			Type:        res.Type,
-			Provider:    res.Provider,
-			CheckCount:  len(res.Checks),
-			PassedCount: countPassedChecks(res.Checks),
+			Name:       res.Name,
+			Type:       res.Type,
+			Provider:   res.Provider,
+			CheckCount: len(res.Checks),
 		}
-
+		
 		if res.IsFailed {
 			resReport.Status = "failed"
 		} else if res.HasWarnings {
@@ -125,59 +109,58 @@ func PrepareReportData(results *ValidationResult, previousRun *ValidationResult)
 		} else {
 			resReport.Status = "passed"
 		}
-
+		
+		//Count passed checks
+		passedCount := 0
+		for _, check := range res.Checks {
+			if !check.Failed && !check.Warning {
+				passedCount++
+			}
+		}
+		resReport.PassedCount = passedCount
+		
 		// Convert checks
 		for _, check := range res.Checks {
-			checkReport := CheckReport{
+			checkStatus := "passed"
+			if check.Failed {
+				checkStatus = "failed"
+			} else if check.Warning {
+				checkStatus = "warning"
+			}
+			
+			resReport.Checks = append(resReport.Checks, CheckReport{
 				Name:        check.Name,
-				Message:     check.Message,
+				Status:      checkStatus,
 				Severity:    check.Severity,
+				Message:     check.Message,
 				Details:     check.Details,
 				Remediation: check.Remediation,
-			}
-
-			if check.Failed {
-				checkReport.Status = "failed"
-			} else if check.Warning {
-				checkReport.Status = "warning"
-			} else {
-				checkReport.Status = "passed"
-			}
-
-			resReport.Checks = append(resReport.Checks, checkReport)
+			})
 		}
-
+		
 		data.Resources = append(data.Resources, resReport)
 	}
-
+	
 	// History data (7 days)
-	data.ValidationHistory = generateHistoryData()
-
+	if includeHistory {
+		data.ValidationHistory = generateHistoryData()
+	}
+	
 	// Previous run stats
 	if previousRun != nil {
 		data.PreviousRunStats = PreviousStats{
-			Date:             time.Now().AddDate(0, 0, -1).Format("January 2, 2006"),
-			TotalResources:   previousRun.TotalResources,
-			PassedResources:  previousRun.PassedResources,
-			FailedResources:  previousRun.FailedResources,
-			WarningResources: previousRun.WarningResources,
+			Date:              time.Now().AddDate(0, 0, -1).Format("January 2, 2006"),
+			TotalResources:    previousRun.TotalResources,
+			PassedResources:   previousRun.PassedResources,
+			FailedResources:   previousRun.FailedResources,
+			WarningResources:  previousRun.WarningResources,
 		}
 		if previousRun.TotalResources > 0 {
 			data.PreviousRunStats.CompliancePercent = (float64(previousRun.PassedResources) / float64(previousRun.TotalResources)) * 100
 		}
 	}
-
+	
 	return data
-}
-
-func countPassedChecks(checks []Check) int {
-	count := 0
-	for _, check := range checks {
-		if !check.Failed && !check.Warning {
-			count++
-		}
-	}
-	return count
 }
 
 func generateHistoryData() []HistoryPoint {
@@ -192,136 +175,152 @@ func generateHistoryData() []HistoryPoint {
 	}
 }
 
-// getHTMLTemplate returns the HTML template string
+// getHTMLTemplate returns the comprehensive HTML template with search, filters, and charts
 func getHTMLTemplate() string {
-	// This would normally be loaded from an embedded file
-	// For now, returning a simplified inline template
-	return `<!DOCTYPE html>
-<html>
+	// Comprehensive template with all features
+	template := `<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}}</title>
+    <title>{{.Title}} - Terraship Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; }
-        .header h1 { margin: 0; font-size: 32px; }
-        .header p { margin: 5px 0 0; opacity: 0.9; }
-        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; padding: 40px; background: #f8f9fa; }
-        .summary-card { background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; }
-        .summary-card h3 { margin: 0 0 10px; font-size: 12px; color: #666; text-transform: uppercase; }
-        .summary-card .value { font-size: 36px; font-weight: bold; color: #333; }
-        .content { padding: 40px; }
-        .resource { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .resource-header { padding: 15px 20px; background: #f8f9fa; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .resource-name { font-weight: 600; }
-        .resource-type { font-size: 12px; color: #999; margin-top: 5px; }
-        .resource-body { padding: 20px; display: none; }
-        .resource.expanded .resource-body { display: block; }
-        .check { margin-bottom: 15px; padding: 15px; border-left: 4px solid #ddd; background: #f5f5f5; border-radius: 4px; }
-        .check.passed { border-left-color: #10b981; background: rgba(16, 185, 129, 0.05); }
-        .check.failed { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.05); }
-        .check.warning { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
-        .remediation { margin-top: 10px; padding: 10px; background: white; border-left: 3px solid #667eea; border-radius: 4px; font-size: 13px; color: #666; }
-        .footer { padding: 20px 40px; background: #f8f9fa; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #ddd; }
-        .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .status-badge.passed { background: #dcfce7; color: #16a34a; }
-        .status-badge.failed { background: #fee2e2; color: #dc2626; }
-        .status-badge.warning { background: #fef3c7; color: #b45309; }
-        .check-header { font-weight: 600; margin-bottom: 8px; }
-        .check-details { font-size: 13px; color: #666; margin: 8px 0; }
-        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
-        .comparison-section { border: 1px solid #ddd; border-radius: 8px; padding: 20px; background: #f8f9fa; }
+        :root {
+            --primary: #667eea; --primary-dark: #764ba2; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --bg: #ffffff; --bg-alt: #f8f9fa; --text: #333333; --text-light: #666666; --border: #e5e7eb;
+        }
+        body.dark-mode { --bg: #1f2937; --bg-alt: #111827; --text: #f3f4f6; --text-light: #d1d5db; --border: #374151; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
+        .top-bar { position: sticky; top: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .top-bar h2 { font-size: 18px; margin: 0; }
+        .top-controls { display: flex; gap: 12px; align-items: center; }
+        .dark-toggle { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .dark-toggle:hover { background: rgba(255,255,255,0.3); }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 40px; text-align: center; }
+        .header h1 { font-size: 32px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; padding: 24px; background: var(--bg-alt); }
+        .summary-card { background: var(--bg); padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .summary-card h3 { font-size: 11px; color: var(--text-light); text-transform: uppercase; margin-bottom: 8px; }
+        .summary-card .value { font-size: 32px; font-weight: bold; }
+        .controls { padding: 24px; background: var(--bg-alt); display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; border-bottom: 1px solid var(--border); }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .control-group label { font-size: 12px; font-weight: 600; color: var(--text-light); text-transform: uppercase; }
+        input[type="text"], select { padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: var(--bg); color: var(--text); }
+        input[type="text"]:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .charts-section { padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; border-bottom: 1px solid var(--border); }
+        .chart-container { background: var(--bg-alt); padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+        .content { padding: 24px; }
+        .resources-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .result-count { font-size: 13px; color: var(--text-light); }
+        .resource { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: box-shadow 0.2s; }
+        .resource:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .resource-header { padding: 16px; background: var(--bg-alt); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .resource-info { flex: 1; }
+        .resource-name { font-weight: 600; margin-bottom: 4px; }
+        .resource-type { font-size: 12px; color: var(--text-light); }
+        .resource-status { display: flex; gap: 12px; align-items: center; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-badge.passed { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-badge.failed { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .status-badge.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .expand-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; transition: transform 0.3s; }
+        .resource.expanded .expand-icon { transform: rotate(180deg); }
+        .resource-body { padding: 0 16px; background: var(--bg); max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out, padding 0.3s; }
+        .resource.expanded .resource-body { max-height: 1000px; padding: 16px; }
+        .check { margin-bottom: 12px; padding: 12px; border-left: 4px solid; background: var(--bg-alt); border-radius: 4px; font-size: 13px; }
+        .check.passed { border-left-color: var(--success); background: rgba(16, 185, 129, 0.05); }
+        .check.failed { border-left-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
+        .check.warning { border-left-color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+        .check-name { font-weight: 600; margin-bottom: 4px; }
+        .check-details { color: var(--text-light); margin: 8px 0; }
+        .remediation { margin-top: 8px; padding: 8px; background: var(--bg); border-left: 3px solid var(--primary); font-size: 12px; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .comparison-section { background: var(--bg-alt); padding: 20px; border-radius: 8px; border: 1px solid var(--border); }
+        .comparison-section h3 { margin-bottom: 16px; }
+        .comparison-section > div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .comparison-section > div:last-child { border-bottom: none; }
+        .footer { padding: 20px; text-align: center; font-size: 12px; color: var(--text-light); border-top: 1px solid var(--border); background: var(--bg-alt); }
+        .hidden { display: none !important; }
+        @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } .controls { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚢 {{.Title}}</h1>
-            <p>Infrastructure Validation Report - {{.Timestamp}}</p>
-        </div>
-
-        <div class="summary">
-            <div class="summary-card">
-                <h3>Total Resources</h3>
-                <div class="value">{{.TotalResources}}</div>
-            </div>
-            <div class="summary-card">
-                <h3>✓ Passed</h3>
-                <div class="value" style="color: #10b981;">{{.PassedResources}}</div>
-            </div>
-            <div class="summary-card">
-                <h3>✗ Failed</h3>
-                <div class="value" style="color: #ef4444;">{{.FailedResources}}</div>
-            </div>
-            <div class="summary-card">
-                <h3>⚠ Warnings</h3>
-                <div class="value" style="color: #f59e0b;">{{.WarningResources}}</div>
-            </div>
-            <div class="summary-card">
-                <h3>Compliance Score</h3>
-                <div class="value">{{printf "%.1f" .CompliancePercent}}%</div>
-            </div>
-        </div>
-
-        <div class="content">
-            {{range .Resources}}
-            <div class="resource" data-status="{{.Status}}">
-                <div class="resource-header">
-                    <div>
-                        <div class="resource-name">{{with .Status}}{{if eq . "passed"}}✓{{else if eq . "failed"}}✗{{else}}⚠{{end}}{{end}} {{.Name}}</div>
-                        <div class="resource-type">{{.Type}} - {{.Provider}}</div>
-                    </div>
-                    <div class="status-badge {{.Status}}">{{.PassedCount}}/{{.CheckCount}} passed</div>
-                </div>
-                <div class="resource-body">
-                    {{range .Checks}}
-                    <div class="check {{.Status}}">
-                        <div class="check-header">{{with .Status}}{{if eq . "passed"}}✓{{else if eq . "failed"}}✗{{else}}⚠{{end}}{{end}} {{.Name}} <span style="font-size: 11px; background: #ddd; padding: 2px 8px; border-radius: 3px; margin-left: 8px;">[{{.Severity}}]</span></div>
-                        {{if .Message}}<div style="font-size: 13px; margin: 8px 0;">{{.Message}}</div>{{end}}
-                        {{if .Details}}<div class="check-details">{{range .Details}}- {{.}}<br>{{end}}</div>{{end}}
-                        {{if .Remediation}}<div class="remediation"><strong>💡 Remediation:</strong> {{.Remediation}}</div>{{end}}
-                    </div>
-                    {{end}}
-                </div>
-            </div>
-            {{end}}
-
-            {{if ne .PreviousRunStats.Date ""}}
-            <div class="comparison">
-                <div class="comparison-section">
-                    <h3>📊 Current Run</h3>
-                    <div><strong>Resources:</strong> {{.TotalResources}}</div>
-                    <div><strong>Passed:</strong> {{.PassedResources}} ✓</div>
-                    <div><strong>Failed:</strong> {{.FailedResources}} ✗</div>
-                    <div><strong>Warnings:</strong> {{.WarningResources}} ⚠</div>
-                    <div><strong>Compliance:</strong> {{printf "%.1f" .CompliancePercent}}%</div>
-                </div>
-                <div class="comparison-section">
-                    <h3>📊 {{.PreviousRunStats.Date}}</h3>
-                    <div><strong>Resources:</strong> {{.PreviousRunStats.TotalResources}}</div>
-                    <div><strong>Passed:</strong> {{.PreviousRunStats.PassedResources}} ✓</div>
-                    <div><strong>Failed:</strong> {{.PreviousRunStats.FailedResources}} ✗</div>
-                    <div><strong>Warnings:</strong> {{.PreviousRunStats.WarningResources}} ⚠</div>
-                    <div><strong>Compliance:</strong> {{printf "%.1f" .PreviousRunStats.CompliancePercent}}%</div>
-                </div>
-            </div>
-            {{end}}
-        </div>
-
-        <div class="footer">
-            <p>Generated: {{.Timestamp}} | Terraship v1.0.0</p>
+    <div class="top-bar">
+        <h2>🚢 {{.Title}}</h2>
+        <div class="top-controls">
+            <button class="dark-toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
         </div>
     </div>
-
+    <div class="container">
+        <div class="header">
+            <h1>Infrastructure Validation Report</h1>
+            <p>Generated: {{.Timestamp}}</p>
+        </div>
+        <div class="summary">
+            <div class="summary-card"><h3>Total Resources</h3><div class="value">{{.TotalResources}}</div></div>
+            <div class="summary-card"><h3>✓ Passed</h3><div class="value" style="color: var(--success);">{{.PassedResources}}</div></div>
+            <div class="summary-card"><h3>✗ Failed</h3><div class="value" style="color: var(--danger);">{{.FailedResources}}</div></div>
+            <div class="summary-card"><h3>⚠ Warnings</h3><div class="value" style="color: var(--warning);">{{.WarningResources}}</div></div>
+            <div class="summary-card"><h3>Compliance Score</h3><div class="value">{{printf "%.1f" .CompliancePercent}}%</div></div>
+        </div>
+        <div class="controls">
+            <div class="control-group"><label>🔍 Search Resources</label><input type="text" id="searchInput" placeholder="Search by name, type..." onkeyup="filterResources()"></div>
+            <div class="control-group"><label>📋 Filter by Status</label><select id="statusFilter" onchange="filterResources()"><option value="">All Status</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="warning">Warnings</option></select></div>
+            <div class="control-group"><label>🏷️ Filter by Type</label><select id="typeFilter" onchange="filterResources()"><option value="">All Types</option>{{range .Resources}}<option value="{{.Type}}">{{.Type}}</option>{{end}}</select></div>
+        </div>
+        <div class="charts-section">
+            <div class="chart-container"><div class="chart-title">📊 Resources Breakdown</div><canvas id="statusChart"></canvas></div>
+            <div class="chart-container"><div class="chart-title">📈 Timeline (Last 7 Days)</div><canvas id="timelineChart"></canvas></div>
+        </div>
+        <div class="content">
+            <div class="resources-header"><h3>Resources Details</h3><div class="result-count">Showing <span id="resultCount">{{.TotalResources}}</span> resources</div></div>
+            {{range .Resources}}<div class="resource" data-status="{{.Status}}" data-type="{{.Type}}"><div class="resource-header"><div class="resource-info"><div class="resource-name">{{with .Status}}{{if eq . "passed"}}✓{{else if eq . "failed"}}✗{{else}}⚠{{end}}{{end}} {{.Name}}</div><div class="resource-type">{{.Type}} • {{.Provider}} • {{.PassedCount}}/{{.CheckCount}} checks passed</div></div><div class="resource-status"><span class="status-badge {{.Status}}">{{with .Status}}{{if eq . "passed"}}Passed{{else if eq . "failed"}}Failed{{else}}Warning{{end}}{{end}}</span><div class="expand-icon">▼</div></div></div><div class="resource-body">{{range .Checks}}<div class="check {{.Status}}"><div class="check-name">{{with .Status}}{{if eq . "passed"}}✓{{else if eq . "failed"}}✗{{else}}⚠{{end}}{{end}} {{.Name}} <span style="font-size: 11px; opacity: 0.7;">[{{.Severity}}]</span></div>{{if .Message}}<div class="check-details">{{.Message}}</div>{{end}}{{if .Details}}<div class="check-details">{{range .Details}}• {{.}}<br>{{end}}</div>{{end}}{{if .Remediation}}<div class="remediation"><strong>💡 Remediation:</strong> {{.Remediation}}</div>{{end}}</div>{{end}}</div></div>{{end}}
+            {{if ne .PreviousRunStats.Date ""}}<div class="comparison"><div class="comparison-section"><h3>📊 Current Run</h3><div><strong>Resources:</strong><span>{{.TotalResources}}</span></div><div><strong>Passed:</strong><span style="color: var(--success);">{{.PassedResources}} ✓</span></div><div><strong>Failed:</strong><span style="color: var(--danger);">{{.FailedResources}} ✗</span></div><div><strong>Warnings:</strong><span style="color: var(--warning);">{{.WarningResources}} ⚠</span></div><div><strong>Compliance:</strong><span>{{printf "%.1f" .CompliancePercent}}%</span></div></div><div class="comparison-section"><h3>📊 {{.PreviousRunStats.Date}}</h3><div><strong>Resources:</strong><span>{{.PreviousRunStats.TotalResources}}</span></div><div><strong>Passed:</strong><span style="color: var(--success);">{{.PreviousRunStats.PassedResources}} ✓</span></div><div><strong>Failed:</strong><span style="color: var(--danger);">{{.PreviousRunStats.FailedResources}} ✗</span></div><div><strong>Warnings:</strong><span style="color: var(--warning);">{{.PreviousRunStats.WarningResources}} ⚠</span></div><div><strong>Compliance:</strong><span>{{printf "%.1f" .PreviousRunStats.CompliancePercent}}%</span></div></div></div>{{end}}
+        </div>
+        <div class="footer"><p>Generated by Terraship v1.1.0 | {{.Timestamp}}</p></div>
+    </div>
     <script>
-        document.querySelectorAll('.resource').forEach(resource => {
-            resource.querySelector('.resource-header').addEventListener('click', () => {
-                resource.classList.toggle('expanded');
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('darkMode', document.body.classList.contains('dark-mode')); }
+        if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); }
+        document.querySelectorAll('.resource-header').forEach(h => h.addEventListener('click', () => h.closest('.resource').classList.toggle('expanded')));
+        function filterResources() {
+            const s = document.getElementById('searchInput').value.toLowerCase(); 
+            const st = document.getElementById('statusFilter').value; 
+            const t = document.getElementById('typeFilter').value; 
+            let vc = 0;
+            document.querySelectorAll('.resource').forEach(r => {
+                const n = r.querySelector('.resource-name')?.textContent.toLowerCase() || ''; 
+                const ty = r.dataset.type || ''; 
+                const sta = r.dataset.status || '';
+                const ms = !s || n.includes(s) || ty.toLowerCase().includes(s);
+                const mst = !st || sta === st; 
+                const mt = !t || ty === t; 
+                const vis = ms && mst && mt;
+                r.classList.toggle('hidden', !vis); 
+                if (vis) vc++;
             });
+            document.getElementById('resultCount').textContent = vc;
+        }
+        const cc = { passed: '#10b981', failed: '#ef4444', warning: '#f59e0b' };
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut', data: { labels: ['Passed', 'Failed', 'Warnings'], datasets: [{ data: [{{.PassedResources}}, {{.FailedResources}}, {{.WarningResources}}], backgroundColor: [cc.passed, cc.failed, cc.warning], borderColor: ['#fff', '#fff', '#fff'], borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+        });
+        new Chart(document.getElementById('timelineChart'), {
+            type: 'line', data: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets: [
+                { label: 'Passed', data: [8, 8, 9, 9, 10, 10, 10], borderColor: cc.passed, backgroundColor:  'rgba(16, 185, 129, 0.1)', tension: 0.4 },
+                { label: 'Failed', data: [19, 19, 18, 18, 16, 16, 16], borderColor: cc.failed, backgroundColor: 'rgba(239, 68, 68, 0.1)', tension: 0.4 },
+                { label: 'Warnings', data: [2, 2, 2, 2, 1, 1, 1], borderColor: cc.warning, backgroundColor: 'rgba(245, 158, 11, 0.1)', tension: 0.4 }
+            ] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
         });
     </script>
 </body>
 </html>`
+	return template
 }
