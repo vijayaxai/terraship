@@ -2,6 +2,58 @@
 
 All notable changes to Terraship are documented in this file.
 
+## [1.2.0] - 2026-02-20
+
+### 🎉 Major Release: Advanced HTML Reporting & Critical Bug Fix
+
+#### 🐛 Critical Bug Fixes
+- **Fixed Resource Data Population** - Resources now display with proper names, types, and providers
+  - Root cause: Incorrect field mapping in `convertResourcesToOutputFormat()`
+  - Previously: Resources appeared as numbers instead of meaningful data
+  - Now: Full resource details with validation checks and remediation guidance
+  - Impact: All HTML reports now fully functional with complete resource information
+
+#### ✨ New Advanced HTML Features
+- **Real-Time Resource Search** - Search by name, type, or provider
+- **Status & Type Filters** - Quick filtering with dropdown menus
+- **Dark Mode Toggle** - Professional dark theme with persistent storage
+- **Chart.js Visualizations**:
+  - Compliance doughnut chart (Passed/Failed/Warnings)
+  - 7-day validation timeline chart
+- **Remediation Guidance** - Quick fix suggestions for each failed check
+- **Comparison Views** - Track improvements across validation runs
+- **Responsive Design** - Works on desktop, tablet, and mobile
+
+#### 🔧 Technical Improvements
+- Fixed `result.Passed` (boolean) mapping instead of nonexistent `result.Status`
+- Fixed `result.Details` (array) handling instead of string concatenation
+- Improved data flow from core validation to output formatters
+- Enhanced template rendering for resource details
+
+#### 📦 Releases
+- **CLI v1.2.0** - With advanced HTML reporting
+- **VS Code Extension v0.4.0** - Same advanced features available in marketplace
+
+#### 📥 Installation
+```bash
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.2.0
+terraship --version  # Shows: v1.2.0
+```
+
+#### 📊 Usage Examples
+```bash
+# Generate advanced HTML with all features
+terraship validate ./terraform --output html --html-advanced
+
+# Track validation history
+terraship validate ./terraform --output html --include-history
+
+# Compare with previous run
+terraship validate ./terraform --output html --compare previous-report.json
+```
+
+---
+
 ## VS Code Extension [0.3.1] - 2026-02-20
 
 ### 🐛 Fixes & Updates

@@ -15,9 +15,12 @@
   - `validate-existing`: Validate existing infrastructure without applying changes
   - `ephemeral-sandbox`: Create temporary infrastructure, validate, and destroy
 - 📊 **Interactive Reports** - HTML, PDF, JSON, and SARIF export formats with:
-  - Compliance dashboard with score tracking
-  - Expandable resource details and quick fixes
-  - Timeline charts and comparison views
+  - Compliance dashboard with real-time compliance score tracking
+  - Searchable and filterable resources with advanced features
+  - Dark mode toggle for comfortable viewing
+  - Chart.js visualizations (compliance doughnut + 7-day timeline)
+  - Expandable resource details and remediation guidance
+  - Comparison views to track improvements over time
   - GitHub Code Scanning integration (SARIF)
 - 🧪 **Terratest Integration** - First-class Go API for testing
 - 🔌 **VS Code Extension** - Validate from your editor
@@ -484,24 +487,30 @@ terraship validate ./terraform --output html --output-file my-report.html
 ### Advanced Features
 
 ```bash
+# Generate advanced HTML with all features (NEW in v1.2.0)
+terraship validate ./terraform --output html --html-advanced
+
 # Include validation history (timeline of past runs)
 terraship validate ./terraform --output html --include-history
 
 # Compare with previous validation
 terraship validate ./terraform --output html --compare previous-report.json
 
-# Dark mode and charts in HTML report
-terraship validate ./terraform --output html --html-advanced
+# Combine all features
+terraship validate ./terraform --output html --html-advanced --include-history --compare previous-report.json
 ```
 
 ### HTML Report Features
-- 🎨 **Interactive & Responsive** - View on desktop or mobile
-- 🔍 **Searchable & Filterable** - Find resources by status
-- 📈 **Compliance Dashboard** - See score at a glance
-- 📊 **Comparison View** - Track improvements over time
-- 💾 **Print-Friendly** - Export to PDF from browser
-- 🌙 **Dark Mode** (advanced) - Better for night viewing
-- ⏱️ **Timeline Charts** (advanced) - Visualize history
+- 🎨 **Interactive & Responsive** - View on desktop, tablet, or mobile
+- 🔍 **Real-Time Search** - Find resources by name, type, or provider
+- 📊 **Status & Type Filters** - Quick filtering with dropdown menus
+- 📈 **Compliance Dashboard** - Visual compliance score with status indicators
+- 📉 **Chart.js Visualizations** - Doughnut charts for compliance and 7-day timeline
+- 💾 **Print-to-PDF** - Export reports directly from browser
+- 🌙 **Dark Mode Toggle** - Comfortable viewing with persistent storage
+- 🔧 **Remediation Guidance** - Quick fixes for each failed check
+- 📊 **Comparison View** - Track improvements over validation runs
+- ⏱️ **Timeline Charts** - Visualize validation history trends
 
 ### PDF Reports
 
@@ -596,6 +605,39 @@ Machine-readable format for CI/CD integration:
 
 ### SARIF
 [SARIF 2.1.0](https://sarifweb.azurewebsites.net/) format for GitHub Code Scanning and security tools.
+
+## 🆕 What's New in v1.2.0
+
+### Major Features
+- **Advanced HTML Reporting**: Comprehensive interactive reports with search, filters, and charts
+- **Dark Mode**: Professional dark theme for comfortable viewing
+- **Resource Search & Filtering**: Find resources by name, type, or status
+- **Chart.js Visualizations**: Compliance doughnut and 7-day timeline charts
+- **Remediation Guidance**: Quick fix suggestions for failed checks
+
+### Bug Fixes
+- **Fixed Resource Data Population**: Resources now display with proper names, types, and providers in HTML reports
+- **Improved Data Mapping**: Corrected field mapping in validation result conversion
+
+### Installation
+
+```bash
+# Update to v1.2.0
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.2.0
+
+# Verify installation
+terraship --version  # Shows: Terraship 1.2.0
+```
+
+### Quick Start with New Features
+
+```bash
+# Generate advanced HTML report
+terraship validate ./terraform --output html --html-advanced
+
+# Open the generated report.html in your browser
+# You'll see: search box, filters, charts, dark mode toggle, and remediation guidance
+```
 
 ## 🤝 Contributing
 
