@@ -2,6 +2,22 @@
 
 All notable changes to Terraship are documented in this file.
 
+## VS Code Extension [0.3.1] - 2026-02-20
+
+### 🐛 Fixes & Updates
+- **Fixed Binary Distribution**: Recompiled CLI with full HTML/PDF reporting support
+- **HTML Report Generation**: CLI now fully supports `--output html` flag
+- **PDF Export**: CLI now fully supports `--output pdf` flag  
+- **Multiple Formats**: Can now generate multiple report formats in one command: `--output html,pdf,json,sarif`
+
+### ✨ Features Coming to Extension
+- Integration with new HTML report viewer
+- Support for advanced HTML features (dark mode, charts, search)
+- Comparison view for validation history
+- Direct report file handling
+
+---
+
 ## [1.1.0] - 2026-02-19
 
 ### 🚀 Major Features
