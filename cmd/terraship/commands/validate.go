@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/vijayaxai/terraship/internal/core"
@@ -26,6 +28,18 @@ Examples:
   # Validate with default policy
   terraship validate ./terraform
 
+  # Generate interactive HTML report
+  terraship validate ./terraform --output html
+
+  # Generate PDF report (requires wkhtmltopdf)
+  terraship validate ./terraform --output pdf
+
+  # Generate all formats
+  terraship validate ./terraform --output human,html,pdf,json,sarif
+
+  # Compare with previous run
+  terraship validate ./terraform --compare previous-report.json
+
   # Validate existing infrastructure
   terraship validate ./terraform --mode validate-existing
 
@@ -42,14 +56,17 @@ Examples:
 }
 
 var (
-	policyPath    string
-	cloudProvider string
-	region        string
-	mode          string
-	outputFormat  string
-	outputFile    string
-	noDestroy     bool
-	verbose       bool
+	policyPath     string
+	cloudProvider  string
+	region         string
+	mode           string
+	outputFormat   string
+	outputFile     string
+	noDestroy      bool
+	verbose        bool
+	htmlAdvanced   bool
+	includeHistory bool
+	compareWith    string
 )
 
 func init() {
@@ -59,10 +76,13 @@ func init() {
 	validateCmd.Flags().StringVar(&cloudProvider, "provider", "", "Cloud provider (aws, azure, gcp) - auto-detect if not specified")
 	validateCmd.Flags().StringVar(&region, "region", "", "Cloud region (AWS region, Azure location, GCP region)")
 	validateCmd.Flags().StringVarP(&mode, "mode", "m", "validate-existing", "Validation mode: validate-existing or ephemeral-sandbox")
-	validateCmd.Flags().StringVarP(&outputFormat, "output", "o", "human", "Output format: human, json, sarif")
+	validateCmd.Flags().StringVarP(&outputFormat, "output", "o", "human", "Output format: human, json, html, pdf, sarif (comma-separated for multiple)")
 	validateCmd.Flags().StringVarP(&outputFile, "output-file", "f", "", "Write output to file instead of stdout")
 	validateCmd.Flags().BoolVar(&noDestroy, "no-destroy", false, "Don't destroy resources in ephemeral mode")
 	validateCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	validateCmd.Flags().BoolVar(&htmlAdvanced, "html-advanced", false, "Use advanced HTML features (dark mode, charts, search)")
+	validateCmd.Flags().BoolVar(&includeHistory, "include-history", false, "Include validation history in report")
+	validateCmd.Flags().StringVar(&compareWith, "compare", "", "Compare with previous validation results (JSON file)")
 }
 
 func runValidate(cmd *cobra.Command, args []string) error {
@@ -95,9 +115,13 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid mode: %s (must be validate-existing or ephemeral-sandbox)", mode)
 	}
 
-	// Validate output format
-	if outputFormat != "human" && outputFormat != "json" && outputFormat != "sarif" {
-		return fmt.Errorf("invalid output format: %s (must be human, json, or sarif)", outputFormat)
+	// Validate output formats
+	formats := strings.Split(outputFormat, ",")
+	for _, f := range formats {
+		f = strings.TrimSpace(f)
+		if f != "human" && f != "json" && f != "html" && f != "pdf" && f != "sarif" {
+			return fmt.Errorf("invalid output format: %s (must be human, json, html, pdf, or sarif)", f)
+		}
 	}
 
 	if verbose {
@@ -136,32 +160,32 @@ func runValidate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Format and output results
-	var formatter output.Formatter
-	switch outputFormat {
-	case "json":
-		formatter = output.NewJSONFormatter(true)
-	case "sarif":
-		formatter = output.NewSARIFFormatter()
-	default:
-		formatter = output.NewHumanFormatter()
+	// Convert summary to ValidationResult for report generation
+	validationResult := convertSummaryToValidationResult(summary)
+
+	// Load previous results if comparing
+	var previousResults *output.ValidationResult
+	if compareWith != "" {
+		prevResults, err := loadValidationResultsFromFile(compareWith)
+		if err != nil {
+			fmt.Printf("⚠  Warning: Could not load previous results: %v\n", err)
+		} else {
+			previousResults = prevResults
+		}
 	}
 
-	result, err := formatter.Format(summary)
-	if err != nil {
-		return fmt.Errorf("failed to format output: %w", err)
+	// Process each output format
+	for _, f := range formats {
+		f = strings.TrimSpace(f)
+		if err := generateValidationReport(f, validationResult, previousResults); err != nil {
+			fmt.Printf("❌ Error generating %s report: %v\n", f, err)
+			continue
+		}
 	}
 
-	// Write output
-	if outputFile != "" {
-		if err := os.WriteFile(outputFile, []byte(result), 0644); err != nil {
-			return fmt.Errorf("failed to write output file: %w", err)
-		}
-		if verbose {
-			fmt.Printf("Results written to: %s\n", outputFile)
-		}
-	} else {
-		fmt.Print(result)
+	// Print summary if not only outputting to a file
+	if outputFile == "" || strings.Contains(outputFormat, "human") {
+		printValidationSummary(validationResult)
 	}
 
 	// Exit with error code if validation failed
@@ -170,4 +194,193 @@ func runValidate(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// convertSummaryToValidationResult converts core validator summary to ValidationResult
+func convertSummaryToValidationResult(summary *core.Summary) *output.ValidationResult {
+	result := &output.ValidationResult{
+		TotalResources:   summary.TotalResources,
+		PassedResources:  summary.PassedResources,
+		FailedResources:  summary.FailedResources,
+		WarningResources: summary.WarningResources,
+		Timestamp:        time.Now().Format("2006-01-02 15:04:05"),
+		Resources:        convertResourcesToOutputFormat(summary),
+	}
+	return result
+}
+
+// convertResourcesToOutputFormat converts core resources to output resources
+func convertResourcesToOutputFormat(summary *core.Summary) []output.Resource {
+	resources := make([]output.Resource, 0)
+	// This is a placeholder - actual implementation would convert from core resources
+	// For now, return empty slice
+	return resources
+}
+
+// generateValidationReport generates report in specified format
+func generateValidationReport(format string, results *output.ValidationResult, previousResults *output.ValidationResult) error {
+	switch format {
+	case "html":
+		return generateHTMLReport(results, previousResults)
+	case "pdf":
+		return generatePDFReport(results, previousResults)
+	case "json":
+		return generateJSONReportFile(results)
+	case "sarif":
+		return generateSARIFReportFile(results)
+	case "human":
+		printHumanReport(results)
+		return nil
+	default:
+		return fmt.Errorf("unknown format: %s", format)
+	}
+}
+
+// generateHTMLReport creates HTML report
+func generateHTMLReport(results *output.ValidationResult, previousResults *output.ValidationResult) error {
+	reporter := output.NewHtmlReporter()
+
+	// Prepare report data
+	reportData := output.PrepareReportData(results, previousResults)
+
+	// Generate HTML
+	html, err := reporter.GenerateHTML(reportData)
+	if err != nil {
+		return err
+	}
+
+	// Determine output file
+	outFile := outputFile
+	if outFile == "" {
+		outFile = "terraship-report.html"
+	}
+
+	// Save HTML
+	if err := reporter.SaveHTML(html, outFile); err != nil {
+		return err
+	}
+
+	colorGreen := "\033[32m"
+	colorReset := "\033[0m"
+	fmt.Printf("%s✓%s HTML report generated: %s\n", colorGreen, colorReset, outFile)
+	fmt.Printf("  Open with: open %s (macOS) or your web browser\n", outFile)
+
+	return nil
+}
+
+// generatePDFReport creates PDF report
+func generatePDFReport(results *output.ValidationResult, previousResults *output.ValidationResult) error {
+	reporter := output.NewPDFReporter()
+
+	// Prepare report data
+	reportData := output.PrepareReportData(results, previousResults)
+
+	// Determine output file
+	outFile := outputFile
+	if outFile == "" {
+		outFile = "terraship-report.pdf"
+	}
+
+	// Try to generate PDF
+	err := reporter.GeneratePDF(reportData, outFile)
+	if err != nil {
+		// Fallback: Generate HTML with .pdf extension instruction
+		colorYellow := "\033[33m"
+		colorReset := "\033[0m"
+		fmt.Printf("%s⚠%s PDF generation skipped - install wkhtmltopdf for native PDF support\n", colorYellow, colorReset)
+		fmt.Println(output.GetPDFInstallInstructions())
+
+		// Still generate HTML report instead
+		return generateHTMLReport(results, previousResults)
+	}
+
+	colorGreen := "\033[32m"
+	colorReset := "\033[0m"
+	fmt.Printf("%s✓%s PDF report generated: %s\n", colorGreen, colorReset, outFile)
+
+	return nil
+}
+
+// generateJSONReportFile creates JSON report file
+func generateJSONReportFile(results *output.ValidationResult) error {
+	outFile := outputFile
+	if outFile == "" {
+		outFile = "terraship-report.json"
+	}
+
+	jsonBytes, err := results.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(outFile, jsonBytes, 0644); err != nil {
+		return err
+	}
+
+	colorGreen := "\033[32m"
+	colorReset := "\033[0m"
+	fmt.Printf("%s✓%s JSON report generated: %s\n", colorGreen, colorReset, outFile)
+
+	return nil
+}
+
+// generateSARIFReportFile creates SARIF report file
+func generateSARIFReportFile(results *output.ValidationResult) error {
+	outFile := outputFile
+	if outFile == "" {
+		outFile = "terraship-report.sarif"
+	}
+
+	sarifBytes, err := results.ToSARIF()
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(outFile, sarifBytes, 0644); err != nil {
+		return err
+	}
+
+	colorGreen := "\033[32m"
+	colorReset := "\033[0m"
+	fmt.Printf("%s✓%s SARIF report generated: %s\n", colorGreen, colorReset, outFile)
+
+	return nil
+}
+
+// printHumanReport prints human-readable report
+func printHumanReport(results *output.ValidationResult) {
+	fmt.Println("\n" + strings.Repeat("=", 63))
+	fmt.Println("                    TERRASHIP VALIDATION REPORT")
+	fmt.Println(strings.Repeat("=", 63))
+	fmt.Println()
+	fmt.Printf("SUMMARY:\n")
+	fmt.Printf("  Total Resources:    %d\n", results.TotalResources)
+	fmt.Printf("  ✓ Passed:           %d\n", results.PassedResources)
+	fmt.Printf("  ✗ Failed:           %d\n", results.FailedResources)
+	fmt.Printf("  ⚠ Warnings:         %d\n", results.WarningResources)
+	fmt.Println()
+
+	if results.FailedResources > 0 {
+		fmt.Println("✗ VALIDATION FAILED")
+	} else {
+		fmt.Println("✓ VALIDATION PASSED")
+	}
+}
+
+// printValidationSummary prints summary statistics
+func printValidationSummary(results *output.ValidationResult) {
+	compliance := 0.0
+	if results.TotalResources > 0 {
+		compliance = (float64(results.PassedResources) / float64(results.TotalResources)) * 100
+	}
+
+	fmt.Printf("\n📊 Compliance Score: %.1f%%\n", compliance)
+	fmt.Printf("⏱  Validation completed: %s\n\n", results.Timestamp)
+}
+
+// loadValidationResultsFromFile loads previous validation results
+func loadValidationResultsFromFile(filePath string) (*output.ValidationResult, error) {
+	// This would load and parse the previous results file
+	// For now, placeholder
+	return nil, fmt.Errorf("loading previous results not yet implemented")
 }

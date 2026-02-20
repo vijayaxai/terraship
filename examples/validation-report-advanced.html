@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraship Advanced Validation Report</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        body.dark-mode {
+            --bg: #1f2937;
+            --bg-secondary: #111827;
+            --text: #f3f4f6;
+            --text-muted: #d1d5db;
+            --border: #374151;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text);
+            transition: background 0.3s;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        /* HEADER WITH CONTROLS */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-title h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .header-btn {
+            padding: 10px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* SEARCH BAR */
+        .search-section {
+            padding: 20px 40px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-results-count {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            gap: 20px;
+            padding: 0 40px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+        }
+
+        .tab {
+            padding: 15px 0;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* TAB CONTENT */
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* TIMELINE CHART */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 40px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        /* SUMMARY CARDS */
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .summary-card.passed {
+            border-left-color: var(--success);
+        }
+
+        .summary-card.failed {
+            border-left-color: var(--danger);
+        }
+
+        .summary-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .summary-card h3 {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .summary-card .value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        /* FILTERS */
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-secondary);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* RESOURCES */
+        .resources {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .resource {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .resource:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .resource-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .resource-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .resource-status {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .resource-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 15px;
+        }
+
+        .resource-type {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .resource-count {
+            background: var(--border);
+            color: var(--text);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .resource-body {
+            display: none;
+            padding: 20px;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+        }
+
+        .resource.expanded .resource-body {
+            display: block;
+        }
+
+        .check {
+            padding: 16px;
+            border-left: 4px solid var(--border);
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .check.passed {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .check.failed {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .check.warning {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .check-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .remediation {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg);
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        /* COMPARE VIEW */
+        .compare-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .compare-section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            background: var(--bg-secondary);
+        }
+
+        .compare-section h3 {
+            margin-bottom: 15px;
+            color: var(--text);
+        }
+
+        .comparison-item {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .comparison-item:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-item .label {
+            color: var(--text-muted);
+        }
+
+        .comparison-item .value {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .comparison-item.changed {
+            background: rgba(245, 158, 11, 0.1);
+            padding: 10px;
+            margin: 0 -10px;
+            border-radius: 4px;
+        }
+
+        /* INTEGRATIONS */
+        .integrations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .integration-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            background: var(--bg-secondary);
+            text-align: center;
+        }
+
+        .integration-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .integration-card h3 {
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .integration-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .integration-btn {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .integration-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* FOOTER */
+        .footer {
+            background: var(--bg-secondary);
+            padding: 20px 40px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: var(--text);
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            background: var(--bg-secondary);
+            color: var(--text);
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            background: var(--bg-secondary);
+            color: var(--text);
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .modal-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .compare-container {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER WITH CONTROLS -->
+        <div class="header">
+            <div class="header-title">
+                <h1>🚢 Terraship Validation Report</h1>
+                <p>Advanced Reporting & Analytics Dashboard</p>
+            </div>
+            <div class="header-controls">
+                <button class="header-btn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+                <button class="header-btn" onclick="exportPDF()">📥 Export PDF</button>
+                <button class="header-btn" onclick="openIntegration('slack')">💬 Slack</button>
+                <button class="header-btn" onclick="openIntegration('email')">📧 Email</button>
+            </div>
+        </div>
+
+        <!-- SEARCH BAR -->
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search resources by name..." onkeyup="searchResources()">
+            </div>
+            <div class="search-results-count" id="resultsCount">Showing 27 resources</div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('overview')">📊 Overview</div>
+            <div class="tab" onclick="switchTab('timeline')">📈 Timeline</div>
+            <div class="tab" onclick="switchTab('compare')">🔄 Compare</div>
+            <div class="tab" onclick="switchTab('integrations')">🔗 Integrations</div>
+        </div>
+
+        <!-- OVERVIEW TAB -->
+        <div id="overview" class="tab-content active">
+            <!-- SUMMARY -->
+            <div class="summary">
+                <div class="summary-card">
+                    <h3>Total Resources</h3>
+                    <div class="value">27</div>
+                </div>
+                <div class="summary-card passed">
+                    <h3>✓ Passed</h3>
+                    <div class="value">10</div>
+                </div>
+                <div class="summary-card failed">
+                    <h3>✗ Failed</h3>
+                    <div class="value">16</div>
+                </div>
+                <div class="summary-card warning">
+                    <h3>⚠ Warnings</h3>
+                    <div class="value">1</div>
+                </div>
+            </div>
+
+            <!-- FILTERS -->
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterResources('all')">All (27)</button>
+                <button class="filter-btn" onclick="filterResources('passed')">✓ Passed (10)</button>
+                <button class="filter-btn" onclick="filterResources('failed')">✗ Failed (16)</button>
+                <button class="filter-btn" onclick="filterResources('warning')">⚠ Warnings (1)</button>
+            </div>
+
+            <!-- RESOURCES -->
+            <div class="resources" id="resourcesContainer">
+                <!-- PASSED -->
+                <div class="resource" data-status="passed" data-name="azurerm_virtual_network.vnet">
+                    <div class="resource-header" onclick="toggleResource(this)">
+                        <div class="resource-title">
+                            <div class="resource-status">✓</div>
+                            <div>
+                                <div class="resource-name">azurerm_virtual_network.vnet</div>
+                                <div class="resource-type">azurerm_virtual_network</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <div class="resource-count">3/3 ✓</div>
+                        </div>
+                    </div>
+                    <div class="resource-body">
+                        <div class="checks">
+                            <div class="check passed">
+                                <div class="check-header">✓ required-tags [error]</div>
+                            </div>
+                            <div class="check passed">
+                                <div class="check-header">✓ naming-convention [info]</div>
+                            </div>
+                            <div class="check passed">
+                                <div class="check-header">✓ cost-tagging [warning]</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAILED -->
+                <div class="resource" data-status="failed" data-name="azurerm_storage_account.insecure_storage">
+                    <div class="resource-header" onclick="toggleResource(this)">
+                        <div class="resource-title">
+                            <div class="resource-status">✗</div>
+                            <div>
+                                <div class="resource-name">azurerm_storage_account.insecure_storage</div>
+                                <div class="resource-type">azurerm_storage_account</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <div class="resource-count">2/5 passed</div>
+                        </div>
+                    </div>
+                    <div class="resource-body">
+                        <div class="checks">
+                            <div class="check failed">
+                                <div class="check-header">✗ required-tags [error]</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Missing tags: Environment, Owner, Project</div>
+                                <div class="remediation"><strong>💡 Fix:</strong> Add required tags to resource configuration</div>
+                            </div>
+                            <div class="check failed">
+                                <div class="check-header">✗ encryption-at-rest [error]</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Encryption not enabled</div>
+                                <div class="remediation"><strong>💡 Fix:</strong> Set <code>infrastructure_encryption_enabled = true</code></div>
+                            </div>
+                            <div class="check passed">
+                                <div class="check-header">✓ block-public-access [error]</div>
+                            </div>
+                            <div class="check failed">
+                                <div class="check-header">✗ enable-logging [warning]</div>
+                                <div class="remediation"><strong>💡 Fix:</strong> Configure diagnostic logging settings</div>
+                            </div>
+                            <div class="check failed">
+                                <div class="check-header">✗ https-only [error]</div>
+                                <div class="remediation"><strong>💡 Fix:</strong> Set <code>https_traffic_only_enabled = true</code></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WARNING -->
+                <div class="resource" data-status="warning" data-name="azurerm_resource_group.missing_costcenter">
+                    <div class="resource-header" onclick="toggleResource(this)">
+                        <div class="resource-title">
+                            <div class="resource-status">⚠</div>
+                            <div>
+                                <div class="resource-name">azurerm_resource_group.missing_costcenter</div>
+                                <div class="resource-type">azurerm_resource_group</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <div class="resource-count">2/3 passed</div>
+                        </div>
+                    </div>
+                    <div class="resource-body">
+                        <div class="checks">
+                            <div class="check passed">
+                                <div class="check-header">✓ required-tags [error]</div>
+                            </div>
+                            <div class="check passed">
+                                <div class="check-header">✓ naming-convention [info]</div>
+                            </div>
+                            <div class="check warning">
+                                <div class="check-header">⚠ cost-tagging [warning]</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Missing CostCenter tag</div>
+                                <div class="remediation"><strong>💡 Fix:</strong> Add <code>CostCenter = "eng-001"</code> tag</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMELINE TAB -->
+        <div id="timeline" class="tab-content">
+            <h2 style="margin-bottom: 20px; color: var(--text);">Validation History (Last 7 Days)</h2>
+            <div class="chart-container">
+                <canvas id="timelineChart"></canvas>
+            </div>
+            <div class="summary" style="margin-top: 30px;">
+                <div class="summary-card">
+                    <h3>Trend</h3>
+                    <div class="value">📈 Improving</div>
+                </div>
+                <div class="summary-card failed">
+                    <h3>Failed Issues</h3>
+                    <div class="value">-3</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Last Run</h3>
+                    <div class="value" style="font-size: 16px;">Today, 11:15 AM</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Avg Score</h3>
+                    <div class="value">62%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPARE TAB -->
+        <div id="compare" class="tab-content">
+            <h2 style="margin-bottom: 20px; color: var(--text);">Compare: Today vs Yesterday</h2>
+            <div class="compare-container">
+                <div class="compare-section">
+                    <h3>📊 Today's Run</h3>
+                    <div class="comparison-item">
+                        <span class="label">Total Resources:</span>
+                        <span class="value">27</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="label">Passed:</span>
+                        <span class="value">10 ✓</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="label">Failed:</span>
+                        <span class="value">16 ✗</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="label">Warnings:</span>
+                        <span class="value">1 ⚠</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="label">Compliance:</span>
+                        <span class="value">37%</span>
+                    </div>
+                </div>
+                <div class="compare-section">
+                    <h3>📊 Yesterday's Run</h3>
+                    <div class="comparison-item">
+                        <span class="label">Total Resources:</span>
+                        <span class="value">27</span>
+                    </div>
+                    <div class="comparison-item changed">
+                        <span class="label">Passed:</span>
+                        <span class="value">8 → 10 ✓</span>
+                    </div>
+                    <div class="comparison-item changed">
+                        <span class="label">Failed:</span>
+                        <span class="value">19 → 16 ✗</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="label">Warnings:</span>
+                        <span class="value">1 ⚠</span>
+                    </div>
+                    <div class="comparison-item changed">
+                        <span class="label">Compliance:</span>
+                        <span class="value">30% → 37%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INTEGRATIONS TAB -->
+        <div id="integrations" class="tab-content">
+            <h2 style="margin-bottom: 30px; color: var(--text);">Team Integrations</h2>
+            <div class="integrations">
+                <div class="integration-card">
+                    <div class="integration-icon">💬</div>
+                    <h3>Slack Integration</h3>
+                    <p>Send validation reports directly to your Slack team channels</p>
+                    <button class="integration-btn" onclick="openIntegration('slack')">Configure Slack</button>
+                </div>
+                <div class="integration-card">
+                    <div class="integration-icon">📧</div>
+                    <h3>Email Notifications</h3>
+                    <p>Receive automated validation summaries via email</p>
+                    <button class="integration-btn" onclick="openIntegration('email')">Setup Email</button>
+                </div>
+                <div class="integration-card">
+                    <div class="integration-icon">🔗</div>
+                    <h3>Webhook URL</h3>
+                    <p>Post validation results to your custom webhooks</p>
+                    <button class="integration-btn" onclick="openIntegration('webhook')">Add Webhook</button>
+                </div>
+                <div class="integration-card">
+                    <div class="integration-icon">🐙</div>
+                    <h3>GitHub Actions</h3>
+                    <p>Integrate with your CI/CD workflows automatically</p>
+                    <button class="integration-btn" onclick="openIntegration('github')">View Docs</button>
+                </div>
+                <div class="integration-card">
+                    <div class="integration-icon">☁️</div>
+                    <h3>Cloud Storage</h3>
+                    <p>Archive reports to S3, Azure Blob, or GCS</p>
+                    <button class="integration-btn" onclick="openIntegration('storage')">Configure Storage</button>
+                </div>
+                <div class="integration-card">
+                    <div class="integration-icon">📊</div>
+                    <h3>Analytics Dashboard</h3>
+                    <p>View all validation metrics in one place</p>
+                    <button class="integration-btn" onclick="openIntegration('analytics')">Open Dashboard</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>Generated: February 19, 2026 at 11:15 AM UTC | Report ID: TR-20260219-112015</p>
+            <p>Terraship v1.0.0 | © 2026 Terraship Inc.</p>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div id="slackModal" class="modal">
+        <div class="modal-content">
+            <h2>🔗 Connect Slack Workspace</h2>
+            <input type="text" placeholder="Slack Workspace Name" id="slackWorkspace">
+            <input type="text" placeholder="Webhook URL (from Slack)" id="slackWebhook">
+            <select style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-secondary); color: var(--text);">
+                <option>Select channel</option>
+                <option>#devops</option>
+                <option>#security</option>
+                <option>#infrastructure</option>
+            </select>
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text);">
+                    <input type="checkbox" checked> Send daily reports
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text);">
+                    <input type="checkbox" checked> Alert on failures
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="closeModal('slackModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveSlackConfig()">Connect Slack</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <h2>📧 Configure Email Reports</h2>
+            <input type="email" placeholder="Email address" id="emailAddress">
+            <select style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-secondary); color: var(--text);">
+                <option>Select frequency</option>
+                <option>Daily</option>
+                <option>Weekly</option>
+                <option>Monthly</option>
+                <option>On failures only</option>
+            </select>
+            <textarea id="emailTemplate" placeholder="Add your team members' emails (one per line)"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn" onclick="closeModal('emailModal')">Cancel</button>
+                <button class="modal-btn primary" onclick="saveEmailConfig()">Save Email Config</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // Load dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'timeline') {
+                setTimeout(initTimelineChart, 100);
+            }
+        }
+
+        // Resource toggle
+        function toggleResource(header) {
+            header.parentElement.classList.toggle('expanded');
+        }
+
+        // Filter resources
+        function filterResources(status) {
+            document.querySelectorAll('.resource').forEach(resource => {
+                if (status === 'all' || resource.dataset.status === status) {
+                    resource.style.display = 'block';
+                } else {
+                    resource.style.display = 'none';
+                }
+            });
+
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // Search functionality
+        function searchResources() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            let count = 0;
+
+            document.querySelectorAll('.resource').forEach(resource => {
+                const name = resource.dataset.name.toLowerCase();
+                if (name.includes(query)) {
+                    resource.style.display = 'block';
+                    count++;
+                } else {
+                    resource.style.display = 'none';
+                }
+            });
+
+            document.getElementById('resultsCount').textContent = `Showing ${count} resource${count !== 1 ? 's' : ''}`;
+        }
+
+        // Integrations
+        function openIntegration(type) {
+            const modalId = type + 'Modal';
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function saveSlackConfig() {
+            alert('Slack configured successfully! Reports will be sent to your channel.');
+            closeModal('slackModal');
+        }
+
+        function saveEmailConfig() {
+            alert('Email configuration saved! You will receive reports at the specified frequency.');
+            closeModal('emailModal');
+        }
+
+        // Export to PDF
+        function exportPDF() {
+            alert('PDF export feature: Generating report...\n\nIn production, this would use html2pdf library to create a downloadable PDF.');
+        }
+
+        // Timeline chart
+        function initTimelineChart() {
+            const ctx = document.getElementById('timelineChart');
+            if (!ctx) return;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [
+                        {
+                            label: '✓ Passed',
+                            data: [8, 8, 9, 9, 10, 10, 10],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '✗ Failed',
+                            data: [19, 19, 18, 18, 16, 16, 16],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '⚠ Warnings',
+                            data: [2, 2, 2, 2, 1, 1, 1],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#1f2937'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-muted') || '#6b7280'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e5e7eb'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: getComputedStyle(document.body).getPropertyValue('--text-muted') || '#6b7280'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e5e7eb'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Close modals on background click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        // First failed resource expands by default
+        document.querySelector('.resource[data-status="failed"]')?.classList.add('expanded');
+    </script>
+</body>
+</html>
