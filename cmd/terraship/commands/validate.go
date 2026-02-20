@@ -212,8 +212,46 @@ func convertSummaryToValidationResult(summary *core.Summary) *output.ValidationR
 // convertResourcesToOutputFormat converts core resources to output resources
 func convertResourcesToOutputFormat(summary *core.Summary) []output.Resource {
 	resources := make([]output.Resource, 0)
-	// This is a placeholder - actual implementation would convert from core resources
-	// For now, return empty slice
+	
+	for _, report := range summary.Reports {
+		// Create resource
+		resource := output.Resource{
+			Name:        report.ResourceAddress,
+			Type:        report.ResourceType,
+			Provider:    report.Provider,
+			IsFailed:    report.Status == "fail" || report.Status == "error",
+			HasWarnings: report.Status == "warning",
+		}
+		
+		// Convert rule results to checks
+		for _, result := range report.RuleResults {
+			check := output.Check{
+				Name:        result.RuleName,
+				Message:     result.Message,
+				Severity:    result.Severity,
+				Failed:      !result.Passed,
+				Warning:     result.Severity == "warning" && result.Passed,
+				Remediation: result.Remediation,
+				Details:     result.Details,
+			}
+			
+			resource.Checks = append(resource.Checks, check)
+		}
+		
+		// Add errors as checks if any
+		for _, errMsg := range report.Errors {
+			check := output.Check{
+				Name:     "Validation Error",
+				Message:  errMsg,
+				Severity: "error",
+				Failed:   true,
+			}
+			resource.Checks = append(resource.Checks, check)
+		}
+		
+		resources = append(resources, resource)
+	}
+	
 	return resources
 }
 
