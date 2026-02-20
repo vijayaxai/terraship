@@ -9,7 +9,7 @@ import (
 
 var (
 	// Version is the application version
-	Version = "dev"
+	Version = "1.2.0"
 	// BuildTime is when the binary was built
 	BuildTime = "unknown"
 )

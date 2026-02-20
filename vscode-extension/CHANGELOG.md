@@ -5,6 +5,29 @@ All notable changes to the Terraship VS Code extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-02-20
+
+### Added
+- **Comprehensive HTML Report Features** - Enhanced HTML reporting with interactive dashboards:
+  - 🔍 Real-time search functionality for resources
+  - 📊 Status and type filtering with interactive dropdowns
+  - 📈 Chart.js visualizations (compliance breakdown doughnut chart + timeline trends)
+  - 🌙 Dark mode toggle with localStorage persistence
+  - 🆚 Comparison view for previous validation runs
+  - 📱 Fully responsive design (desktop, tablet, mobile)
+  - 💾 Print-friendly CSS for PDF export from browser
+
+### Changed
+- HTML report template completely redesigned for production-ready output
+- Enhanced CSS with CSS variables for consistent theming
+- Improved interactive resource filtering with real-time result count updates
+- Better expandable/collapsible resource sections with status indicators
+
+### Performance
+- Embedded comprehensive ~12KB template as minified single-line string
+- Optimized template loading for faster report generation
+- Chart.js loaded from CDN for lightweight extension package
+
 ## [0.1.8] - 2026-02-19
 
 ### Added
