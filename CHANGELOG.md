@@ -2,6 +2,20 @@
 
 All notable changes to Terraship are documented in this file.
 
+## [1.3.1] - 2026-02-23
+
+### 🐛 Bug Fixes
+- **Ephemeral-Sandbox Cleanup** - Fixed resource leak when terraform apply fails partially
+  - Ensure `terraform destroy` runs even if apply encounters errors
+  - Prevents orphaned resources and unexpected cloud spending
+  - Apply errors are still reported after cleanup attempts
+  - Destroy failures show as warnings in verbose mode
+
+#### Details
+- Modified `runEphemeralMode()` to guarantee cleanup
+- Destroy is now attempted regardless of apply outcome (unless `--no-destroy` flag)
+- Resource cleanup happens before error reporting
+
 ## [1.3.0] - 2026-02-23
 
 ### 🎯 Major Release: Production-Ready Security & Compliance Rules

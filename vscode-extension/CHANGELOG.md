@@ -5,6 +5,18 @@ All notable changes to the Terraship VS Code extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-02-23
+
+### Fixed
+- **Ephemeral-Sandbox Cleanup** - Fixed resource leak when terraform apply fails
+  - Ensure `terraform destroy` automatically runs even if apply encounters errors
+  - Prevents orphaned Azure/AWS/GCP resources
+  - CLI bug fix automatically propagated to extension through version sync
+
+### Changed
+- Version aligned with CLI v1.3.1 (patch release)
+- Updated underlying Terraship engine with garbage collection fix
+
 ## [0.5.0] - 2026-02-23
 
 ### Changed
