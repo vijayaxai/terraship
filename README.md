@@ -38,8 +38,11 @@ chmod +x /usr/local/bin/terraship
 # Windows (PowerShell)
 Invoke-WebRequest -Uri "https://github.com/vijayaxai/terraship/releases/latest/download/terraship-windows-amd64.exe" -OutFile "terraship.exe"
 
-# Go install
+# Go install (recommended for latest version)
 go install github.com/vijayaxai/terraship/cmd/terraship@latest
+
+# Or specific version
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.2.1
 ```
 
 ### Initialize Policy

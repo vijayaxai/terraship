@@ -5,6 +5,20 @@ All notable changes to the Terraship VS Code extension will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-20
+
+### Fixed
+- **Version Alignment** - Extension version now synced with CLI v1.2.1
+- **Documentation** - Updated README with specific version installation instructions
+
+### Changed
+- Updated README to remove Beta notice - now stable release
+- Enhanced installation documentation with version selection examples
+- Improved prerequisites section with clearer setup guidance
+
+### Performance
+- Stable release with validated advanced HTML reporting features
+
 ## [0.4.0] - 2026-02-20
 
 ### Added

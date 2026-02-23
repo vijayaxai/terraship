@@ -1,10 +1,12 @@
-# Terraship VS Code Extension (Beta)
+# Terraship VS Code Extension
 
 🚢 Multi-cloud Terraform validation and policy checking for AWS, Azure, and GCP.
 
-## ⚠️ Beta Notice
+## ✨ Latest Version
 
-This is a **BETA** release (version 0.1.6). Features are functional but may have rough edges. We welcome your feedback!
+**Current Version:** 0.4.1 - Stable Release with Advanced HTML Reporting
+
+Features now include interactive HTML reports with search, filters, charts, dark mode, and compliance tracking.
 
 ## 🌟 Features
 
@@ -45,6 +47,11 @@ go install github.com/vijayaxai/terraship/cmd/terraship@latest
 ```
 
 Binary installs to `$GOPATH/bin` (usually `~/go/bin` or `C:\Users\<username>\go\bin`). Make sure it's in PATH.
+
+**Or install a specific version:**
+```bash
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.2.1
+```
 
 Verify:
 ```bash
