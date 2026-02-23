@@ -2,6 +2,63 @@
 
 All notable changes to Terraship are documented in this file.
 
+## [1.3.0] - 2026-02-23
+
+### 🎯 Major Release: Production-Ready Security & Compliance Rules
+
+#### ✨ New Features
+- **25 Granular Production-Ready Rules** - Expanded policy framework from 16 to 41 comprehensive rules
+  - Encryption specificity (KMS, TLS, database encryption in transit)
+  - Authentication & access control (MFA, root hardening, credential rotation)
+  - Audit & compliance (CloudTrail multi-region, immutable logs, 90-day retention)
+  - Network security (restrict SSH/RDP, NAT gateway, WAF requirements)
+  - Database hardening (delete protection, backup retention, enhanced monitoring)
+  - Comprehensive tagging & governance (5 required tags)
+  - Cost optimization (latest instances, auto-scaling, cross-region replication)
+
+#### 📊 Policy Improvements
+- Total rules increased: 16 → 41 comprehensive policies
+- ERROR severity rules: 6 → 14 critical checks
+- WARNING severity rules: 7 → 16 recommended checks
+- Production-ready compliance mappings
+- Multi-cloud coverage for AWS, Azure, GCP
+
+#### 📥 Installation
+```bash
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.3.0
+terraship --version  # Shows: Terraship 1.3.0
+```
+
+---
+
+## [1.2.1] - 2026-02-23
+
+### 🔧 Patch Release: Stability & Performance
+
+#### ✨ Improvements
+- Stabilized advanced HTML reporting features
+- Optimized resource data population performance
+- Improved error handling and edge cases
+- Enhanced CLI messaging and user feedback
+
+#### 🐛 Bug Fixes
+- Fixed potential issues with large terraform configurations
+- Improved resource filtering accuracy
+- Fixed chart rendering on edge cases
+- Enhanced dark mode CSS for better readability
+
+#### 📦 Releases
+- **CLI v1.2.1** - Stable patch release
+- **VS Code Extension v0.4.1** - Matching patch release
+
+#### 📥 Installation
+```bash
+go install github.com/vijayaxai/terraship/cmd/terraship@v1.2.1
+terraship --version  # Shows: v1.2.1
+```
+
+---
+
 ## [1.2.0] - 2026-02-20
 
 ### 🎉 Major Release: Advanced HTML Reporting & Critical Bug Fix
