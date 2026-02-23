@@ -281,15 +281,22 @@ func (v *Validator) extractResourceID(resource terraform.Resource) string {
 
 func (v *Validator) runEphemeralMode(ctx context.Context, planFile string) error {
 	// Apply the plan
-	if err := v.tfClient.Apply(ctx, planFile); err != nil {
-		return fmt.Errorf("terraform apply failed: %w", err)
-	}
+	applyErr := v.tfClient.Apply(ctx, planFile)
 
-	// Destroy unless --no-destroy flag is set
+	// Always attempt destroy unless --no-destroy flag is set, even if apply failed
+	// This ensures cleanup happens to prevent resource leaks
 	if !v.config.NoDestroy {
 		if err := v.tfClient.Destroy(ctx, true); err != nil {
-			return fmt.Errorf("terraform destroy failed: %w", err)
+			// Log warning but don't block error reporting from apply failure
+			if v.config.Verbose {
+				fmt.Fprintf(os.Stderr, "Warning: terraform destroy encountered issues: %v\n", err)
+			}
 		}
+	}
+
+	// Return the apply error after cleanup attempt
+	if applyErr != nil {
+		return fmt.Errorf("terraform apply failed: %w", applyErr)
 	}
 
 	return nil
