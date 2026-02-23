@@ -85,12 +85,12 @@ terraship validate ./terraform
 **Azure:**
 ```bash
 # PowerShell
-$env:AZURE_SUBSCRIPTION_ID = "d30ec219-d601-414b-98b6-230b6e520d37"
-$env:AZURE_TENANT_ID = "2111de49-6a33-4187-af6d-96575525e6ef"
+$env:AZURE_SUBSCRIPTION_ID = "your-subscription-id"
+$env:AZURE_TENANT_ID = "your-tenant-id"
 
 # Bash / macOS / Linux
-export AZURE_SUBSCRIPTION_ID="d30ec219-d601-414b-98b6-230b6e520d37"
-export AZURE_TENANT_ID="2111de49-6a33-4187-af6d-96575525e6ef"
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
+export AZURE_TENANT_ID="your-tenant-id"
 ```
 
 **AWS:**
@@ -121,10 +121,10 @@ If using the VS Code extension, configure credentials in your settings:
 
 ```json
 {
-  "terraship.azureSubscriptionId": "d30ec219-d601-414b-98b6-230b6e520d37",
-  "terraship.azureTenantId": "2111de49-6a33-4187-af6d-96575525e6ef",
-  "terraship.awsProfile": "my-profile",
-  "terraship.gcpProject": "my-gcp-project"
+  "terraship.azureSubscriptionId": "your-subscription-id",
+  "terraship.azureTenantId": "your-tenant-id",
+  "terraship.awsProfile": "your-aws-profile",
+  "terraship.gcpProject": "your-gcp-project"
 }
 ```
 
@@ -445,14 +445,14 @@ For more details, see the **Setup Cloud Credentials** section in Quick Start abo
 
 PowerShell:
 ```powershell
-$env:AZURE_SUBSCRIPTION_ID = "d30ec219-d601-414b-98b6-230b6e520d37"
+$env:AZURE_SUBSCRIPTION_ID = "your-subscription-id"
 $env:PATH = "C:\terraform;" + $env:PATH  # Add Terraform to PATH
 terraship validate .
 ```
 
 Bash / macOS / Linux:
 ```bash
-export AZURE_SUBSCRIPTION_ID="d30ec219-d601-414b-98b6-230b6e520d37"
+export AZURE_SUBSCRIPTION_ID="your-subscription-id"
 export PATH="/usr/local/terraform:$PATH"  # Add Terraform to PATH
 terraship validate .
 ```
