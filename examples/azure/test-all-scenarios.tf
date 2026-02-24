@@ -275,6 +275,7 @@ resource "azurerm_mssql_database" "insecure_db" {
 # =========================================================================
 
 # Virtual Network and Subnets
+# ❌ NON-COMPLIANT: VNet missing required tags
 resource "azurerm_virtual_network" "vnet" {
   name                = "terraship-vnet"
   address_space       = ["10.0.0.0/16"]
@@ -283,21 +284,35 @@ resource "azurerm_virtual_network" "vnet" {
 
   tags = {
     Environment = "Production"
-    Owner       = "Network Team"
-    Project     = "Infrastructure"
-    CostCenter  = "Infrastructure"
+    # Missing: Owner, Project, CostCenter
   }
 }
 
-# ✅ Private subnet (compliant)
+# ✅ COMPLIANT: VNet with all required tags
+resource "azurerm_virtual_network" "compliant_vnet" {
+  name                = "terraship-compliant-vnet"
+  address_space       = ["10.1.0.0/16"]
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Network Team"
+    Project     = "Infrastructure"
+    CostCenter  = "Infrastructure"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# ✅ Private subnet - compliant
 resource "azurerm_subnet" "private_subnet" {
   name                 = "private-subnet"
   resource_group_name  = azurerm_resource_group.compliant_rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+  virtual_network_name = azurerm_virtual_network.compliant_vnet.name
+  address_prefixes     = ["10.1.1.0/24"]
 }
 
-# ❌ Public subnet (non-compliant)
+# ❌ Public subnet - non-compliant (uses non-compliant vnet)
 resource "azurerm_subnet" "public_subnet" {
   name                 = "public-subnet"
   resource_group_name  = azurerm_resource_group.compliant_rg.name
@@ -437,8 +452,23 @@ resource "azurerm_role_assignment" "overpermissive_owner" {
 # Tests: azure-storage-https-only, enable-logging
 # =========================================================================
 
+# ❌ NON-COMPLIANT: App Service Plan missing required tags
 resource "azurerm_service_plan" "app_plan" {
   name                = "terraship-app-plan"
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+  location            = azurerm_resource_group.compliant_rg.location
+  os_type             = "Linux"
+  sku_name            = "B1"
+
+  tags = {
+    Name = "App Plan"
+    # Missing: Environment, Owner, Project, CostCenter
+  }
+}
+
+# ✅ COMPLIANT: App Service Plan with full tags
+resource "azurerm_service_plan" "compliant_app_plan" {
+  name                = "terraship-compliant-app-plan"
   resource_group_name = azurerm_resource_group.compliant_rg.name
   location            = azurerm_resource_group.compliant_rg.location
   os_type             = "Linux"
@@ -449,6 +479,7 @@ resource "azurerm_service_plan" "app_plan" {
     Owner       = "App Team"
     Project     = "Web App"
     CostCenter  = "Engineering"
+    ManagedBy   = "Terraform"
   }
 }
 
@@ -457,7 +488,7 @@ resource "azurerm_linux_web_app" "compliant_app" {
   name                = "terraship-secure-app"
   resource_group_name = azurerm_resource_group.compliant_rg.name
   location            = azurerm_resource_group.compliant_rg.location
-  service_plan_id     = azurerm_service_plan.app_plan.id
+  service_plan_id     = azurerm_service_plan.compliant_app_plan.id
 
   site_config {
     # ✅ HTTPS only
@@ -481,7 +512,7 @@ resource "azurerm_linux_web_app" "insecure_app" {
   name                = "terraship-insecure-app"
   resource_group_name = azurerm_resource_group.compliant_rg.name
   location            = azurerm_resource_group.compliant_rg.location
-  service_plan_id     = azurerm_service_plan.app_plan.id
+  service_plan_id     = azurerm_service_plan.compliant_app_plan.id
 
   site_config {
     minimum_tls_version = "1.0"  # ❌ Old TLS version
@@ -496,12 +527,530 @@ resource "azurerm_linux_web_app" "insecure_app" {
 }
 
 # =========================================================================
+# SCENARIO 10: NETWORK SECURITY - NSG COMPLIANCE
+# Tests: naming-convention, required-tags
+# =========================================================================
+
+# ✅ COMPLIANT: Network Security Group with all required tags
+resource "azurerm_network_security_group" "compliant_nsg" {
+  name                = "terraship-compliant-nsg"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Network Security Team"
+    Project     = "Network Security"
+    CostCenter  = "Infrastructure"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# =========================================================================
+# SCENARIO 11: NETWORK SECURITY - SSH/RDP RESTRICTIONS
+# Tests: security-group-restrict-ssh-rdp
+# =========================================================================
+
+# ✅ COMPLIANT: NSG with restricted SSH/RDP access
+resource "azurerm_network_security_rule" "compliant_restrict_ssh" {
+  name                        = "DenySSHFromInternet"
+  priority                    = 100
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "22"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.compliant_rg.name
+  network_security_group_name = azurerm_network_security_group.compliant_nsg.name
+}
+
+resource "azurerm_network_security_rule" "compliant_restrict_rdp" {
+  name                        = "DenyRDPFromInternet"
+  priority                    = 101
+  direction                   = "Inbound"
+  access                      = "Deny"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "3389"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.compliant_rg.name
+  network_security_group_name = azurerm_network_security_group.compliant_nsg.name
+}
+
+# ❌ NON-COMPLIANT: NSG allowing SSH/RDP from anywhere
+resource "azurerm_network_security_group" "insecure_nsg" {
+  name                = "terraship-insecure-nsg"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  tags = {
+    Environment = "Development"
+    Owner       = "Dev Team"
+  }
+}
+
+resource "azurerm_network_security_rule" "insecure_allow_ssh" {
+  name                        = "AllowSSHFromInternet"
+  priority                    = 100
+  direction                   = "Inbound"
+  access                      = "Allow"  # ❌ Allows SSH from anywhere
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "22"
+  source_address_prefix       = "*"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.compliant_rg.name
+  network_security_group_name = azurerm_network_security_group.insecure_nsg.name
+}
+
+# =========================================================================
+# SCENARIO 12: NETWORK SECURITY - NAT GATEWAY (FOR PRIVATE SUBNETS)
+# Tests: nat-gateway-for-private-subnets
+# =========================================================================
+
+# ✅ COMPLIANT: Public IP and NAT Gateway for private subnets
+resource "azurerm_public_ip" "nat_gateway_ip" {
+  name                = "terraship-nat-gateway-ip"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Network Team"
+    Project     = "NAT Gateway"
+    CostCenter  = "Infrastructure"
+  }
+}
+
+resource "azurerm_nat_gateway" "compliant_nat_gateway" {
+  name                    = "terraship-nat-gateway"
+  location                = azurerm_resource_group.compliant_rg.location
+  resource_group_name     = azurerm_resource_group.compliant_rg.name
+  public_ip_address_ids   = [azurerm_public_ip.nat_gateway_ip.id]
+  idle_timeout_in_minutes = 10
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Network Team"
+    Project     = "NAT Gateway"
+    CostCenter  = "Infrastructure"
+  }
+}
+
+# ✅ Associate NAT Gateway with private subnet
+resource "azurerm_subnet_nat_gateway_association" "compliant_nat_assoc" {
+  subnet_id      = azurerm_subnet.private_subnet.id
+  nat_gateway_id = azurerm_nat_gateway.compliant_nat_gateway.id
+}
+
+# ❌ NON-COMPLIANT: Private subnet without NAT Gateway (direct internet access)
+resource "azurerm_subnet" "isolated_subnet" {
+  name                 = "isolated-subnet"
+  resource_group_name  = azurerm_resource_group.compliant_rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.3.0/24"]
+}
+
+# =========================================================================
+# SCENARIO 13: APPLICATION GATEWAY WITH WAF
+# Tests: waf-enabled-on-apis
+# =========================================================================
+
+# ✅ COMPLIANT: Application Gateway with WAF enabled
+resource "azurerm_application_gateway" "compliant_app_gateway" {
+  name                = "terraship-app-gateway"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  sku {
+    name     = "WAF_v2"  # ✅ WAF enabled
+    tier     = "WAF_v2"
+    capacity = 1
+  }
+
+  gateway_ip_configuration {
+    name      = "gateway-ip-config"
+    subnet_id = azurerm_subnet.private_subnet.id
+  }
+
+  frontend_port {
+    name = "http"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "frontend-ip"
+    public_ip_address_id = azurerm_public_ip.nat_gateway_ip.id
+  }
+
+  backend_address_pool {
+    name = "backend-pool"
+  }
+
+  backend_http_settings {
+    name            = "http-settings"
+    cookie_based_affinity = "Disabled"
+    port            = 80
+    protocol        = "Http"
+  }
+
+  http_listener {
+    name                           = "http-listener"
+    frontend_ip_configuration_name = "frontend-ip"
+    frontend_port_name             = "http"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name               = "routing-rule"
+    rule_type          = "Basic"
+    http_listener_name = "http-listener"
+    backend_address_pool_name = "backend-pool"
+    backend_http_settings_name = "http-settings"
+  }
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Security Team"
+    Project     = "API Protection"
+    CostCenter  = "Infrastructure"
+  }
+}
+
+# ❌ NON-COMPLIANT: Standard gateway without WAF
+resource "azurerm_application_gateway" "insecure_app_gateway" {
+  name                = "terraship-standard-gateway"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  sku {
+    name     = "Standard_v2"  # ❌ No WAF
+    tier     = "Standard_v2"
+    capacity = 1
+  }
+
+  gateway_ip_configuration {
+    name      = "gateway-ip-config"
+    subnet_id = azurerm_subnet.public_subnet.id
+  }
+
+  frontend_port {
+    name = "http"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "frontend-ip"
+    public_ip_address_id = azurerm_public_ip.nat_gateway_ip.id
+  }
+
+  backend_address_pool {
+    name = "backend-pool"
+  }
+
+  backend_http_settings {
+    name            = "http-settings"
+    cookie_based_affinity = "Disabled"
+    port            = 80
+    protocol        = "Http"
+  }
+
+  http_listener {
+    name                           = "http-listener"
+    frontend_ip_configuration_name = "frontend-ip"
+    frontend_port_name             = "http"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name               = "routing-rule"
+    rule_type          = "Basic"
+    http_listener_name = "http-listener"
+    backend_address_pool_name = "backend-pool"
+    backend_http_settings_name = "http-settings"
+  }
+
+  tags = {
+    Environment = "Development"
+    Owner       = "Dev Team"
+  }
+}
+
+# =========================================================================
+# SCENARIO 14: DATABASE HARDENING - DELETE PROTECTION
+# Tests: database-delete-protection
+# =========================================================================
+
+# ✅ COMPLIANT: MSSQL Database with delete protection (backup long-term retention acts as protection)
+# Note: Azure doesn't have explicit "delete protection" like AWS RDS, but using backup retention provides protection
+resource "azurerm_mssql_database" "protected_db" {
+  name      = "terraship-protected-db"
+  server_id = azurerm_mssql_server.compliant_sql_server.id
+
+  long_term_retention_policy {
+    weekly_retention  = "P4W"   # ✅ 4 weeks retention
+    monthly_retention = "P12M"  # ✅ 12 months retention
+    yearly_retention  = "P5Y"   # ✅ 5 years retention
+    week_of_year      = 1
+  }
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Database Team"
+    Project     = "Protected Database"
+    CostCenter  = "Engineering"
+  }
+}
+
+# ❌ NON-COMPLIANT: Database with minimal retention (delete could leave no backup)
+resource "azurerm_mssql_database" "unprotected_db" {
+  name      = "terraship-unprotected-db"
+  server_id = azurerm_mssql_server.compliant_sql_server.id
+
+  short_term_retention_policy {
+    retention_days = 7  # ❌ Only 7 days - minimal protection
+  }
+
+  tags = {
+    Environment = "Development"
+    Owner       = "Dev Team"
+  }
+}
+
+# =========================================================================
+# SCENARIO 15: DATABASE HARDENING - ENHANCED MONITORING
+# Tests: database-enhanced-monitoring
+# =========================================================================
+
+# ✅ COMPLIANT: MSSQL Database with threat detection and auditing
+resource "azurerm_mssql_database_security_alert_policy" "compliant_threat_detection" {
+  resource_group_name        = azurerm_resource_group.compliant_rg.name
+  server_name                = azurerm_mssql_server.compliant_sql_server.name
+  database_name              = azurerm_mssql_database.compliant_db.name
+  state                      = "Enabled"  # ✅ Threat detection enabled
+  retention_days             = 30
+  disabled_alerts            = []
+  email_notification_admins  = true
+}
+
+# ✅ COMPLIANT: Database auditing policy
+resource "azurerm_mssql_database_auditing_policy" "compliant_auditing" {
+  database_id                 = azurerm_mssql_database.compliant_db.id
+  enabled                     = true  # ✅ Auditing enabled
+  storage_endpoint            = azurerm_storage_account.compliant_storage.primary_blob_endpoint
+  storage_account_access_key  = azurerm_storage_account.compliant_storage.primary_access_key
+  storage_account_access_key_is_secondary = false
+  retention_in_days           = 30
+}
+
+# ❌ NON-COMPLIANT: Database without threat detection or auditing
+resource "azurerm_mssql_database_security_alert_policy" "insecure_threat_detection" {
+  resource_group_name        = azurerm_resource_group.compliant_rg.name
+  server_name                = azurerm_mssql_server.compliant_sql_server.name
+  database_name              = azurerm_mssql_database.insecure_db.name
+  state                      = "Disabled"  # ❌ Threat detection disabled
+  retention_days             = 0
+}
+
+# =========================================================================
+# SCENARIO 16: AUDIT & COMPLIANCE - LOG RETENTION
+# Tests: log-retention-minimum-90-days
+# =========================================================================
+
+# ✅ COMPLIANT: Storage account with diagnostic settings (90+ days retention)
+resource "azurerm_monitor_diagnostic_setting" "compliant_diagnostic" {
+  name                       = "compliant-diagnostic-setting"
+  target_resource_id         = azurerm_storage_account.compliant_storage.id
+  log_analytics_workspace_id = null  # Would use Log Analytics in production
+
+  enabled_log {
+    category = "StorageRead"
+    retention_policy {
+      enabled = true
+      days    = 90  # ✅ 90 days retention
+    }
+  }
+
+  metric {
+    category = "Transaction"
+    retention_policy {
+      enabled = true
+      days    = 90
+    }
+  }
+}
+
+# ❌ NON-COMPLIANT: Short log retention (less than 90 days)
+resource "azurerm_monitor_diagnostic_setting" "insecure_diagnostic" {
+  name                       = "insecure-diagnostic-setting"
+  target_resource_id         = azurerm_storage_account.insecure_storage.id
+  log_analytics_workspace_id = null
+
+  enabled_log {
+    category = "StorageRead"
+    retention_policy {
+      enabled = true
+      days    = 7  # ❌ Only 7 days - insufficient
+    }
+  }
+
+  metric {
+    category = "Transaction"
+    retention_policy {
+      enabled = true
+      days    = 7
+    }
+  }
+}
+
+# =========================================================================
+# SCENARIO 17: RBAC - LEAST PRIVILEGE WITH SERVICE PRINCIPAL
+# Tests: iam-least-privilege, role-based-access-control
+# =========================================================================
+
+# ✅ COMPLIANT: Minimal role for service principal (Storage Blob Data Reader)
+resource "azurerm_role_assignment" "compliant_minimal_role" {
+  scope                = azurerm_storage_account.compliant_storage.id
+  role_definition_name = "Storage Blob Data Reader"  # ✅ Minimal permission
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# ❌ NON-COMPLIANT: Overly permissive role (Contributor)
+resource "azurerm_role_assignment" "insecure_contributor_role" {
+  scope                = azurerm_storage_account.insecure_storage.id
+  role_definition_name = "Contributor"  # ❌ Too many permissions
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# =========================================================================
+# SCENARIO 18: COMPUTE - AUTO-SCALING CONFIGURATION
+# Tests: compute-auto-scaling
+# =========================================================================
+
+# ✅ COMPLIANT: App Service Plan with autoscale settings
+resource "azurerm_monitor_autoscale_setting" "compliant_autoscale" {
+  name                = "terraship-autoscale"
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+  location            = azurerm_resource_group.compliant_rg.location
+  target_resource_id  = azurerm_service_plan.compliant_app_plan.id
+
+  profile {
+    name = "default"
+
+    capacity {
+      default = 1
+      minimum = 1
+      maximum = 5  # ✅ Auto-scaling enabled
+    }
+
+    rule {
+      metric_trigger {
+        metric_name        = "CpuPercentage"
+        metric_resource_id = azurerm_service_plan.compliant_app_plan.id
+        time_grain         = "PT1M"
+        statistic          = "Average"
+        time_window        = "PT5M"
+        operator           = "GreaterThan"
+        threshold          = 70
+      }
+
+      scale_action {
+        direction = "Increase"
+        type      = "ChangeCount"
+        value     = 1
+        cooldown  = "PT5M"
+      }
+    }
+  }
+}
+
+# ❌ NON-COMPLIANT: No auto-scaling (static capacity)
+# Note: Non-compliant version is implicit (no autoscale setting created)
+
+# =========================================================================
+# SCENARIO 19: ENCRYPTION - KMS/CMK MANDATORY
+# Tests: kms-encryption-mandatory
+# =========================================================================
+
+# ✅ COMPLIANT: Storage account with customer-managed key encryption
+resource "azurerm_key_vault_key" "storage_key" {
+  name         = "storage-key"
+  key_vault_id = azurerm_key_vault.compliant_kv.id
+  key_type     = "RSA"
+  key_size     = 2048
+  key_opts     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+}
+
+resource "azurerm_storage_account_customer_managed_key" "compliant_cmk" {
+  storage_account_id        = azurerm_storage_account.compliant_storage.id
+  key_vault_id              = azurerm_key_vault.compliant_kv.id
+  key_name                  = azurerm_key_vault_key.storage_key.name
+  user_assigned_identity_id = null
+}
+
+# ❌ NON-COMPLIANT: Storage account with default encryption (not customer-managed)
+# This is implicit - the insecure_storage doesn't have customer_managed_key configuration
+
+# =========================================================================
+# SCENARIO 20: NETWORKING - COMPREHENSIVE TAGGING & GOVERNANCE
+# Tests: comprehensive-resource-tagging, naming-convention
+# =========================================================================
+
+# ✅ COMPLIANT: All networking resources properly tagged and named
+resource "azurerm_network_interface" "compliant_nic_tagged" {
+  name                = "terraship-prod-nic-001"  # ✅ Proper naming
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.private_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+
+  tags = {
+    Environment = "Production"
+    Owner       = "Network Team"
+    Project     = "Core Infrastructure"
+    CostCenter  = "Infrastructure"
+    ManagedBy   = "Terraform"
+    DataClass   = "Public"
+    BackupPolicy = "Daily"
+  }
+}
+
+# ❌ NON-COMPLIANT: Resource with missing governance tags
+resource "azurerm_network_interface" "minimal_nic" {
+  name                = "nic-test"  # ❌ Non-standard naming
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.public_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+
+  tags = {
+    Name = "Test NIC"
+    # Missing: Environment, Owner, Project, CostCenter, ManagedBy, DataClass, BackupPolicy
+  }
+}
+
+# =========================================================================
 # OUTPUTS - For Testing and Verification
 # =========================================================================
 
 output "test_summary" {
-  description = "Summary of test scenarios"
+  description = "Summary of test scenarios - COMPREHENSIVE POLICY COVERAGE"
   value = {
+    scenario_count = 20
+    
     compliant_resources = [
       "azurerm_resource_group.compliant_rg",
       "azurerm_storage_account.compliant_storage",
@@ -509,9 +1058,26 @@ output "test_summary" {
       "azurerm_managed_disk.compliant_disk",
       "azurerm_mssql_server.compliant_sql_server",
       "azurerm_mssql_database.compliant_db",
-      "azurerm_linux_virtual_machine.compliant_vm",
       "azurerm_key_vault.compliant_kv",
-      "azurerm_linux_web_app.compliant_app"
+      "azurerm_linux_web_app.compliant_app",
+      "azurerm_virtual_network.compliant_vnet",
+      "azurerm_service_plan.compliant_app_plan",
+      "azurerm_network_security_group.compliant_nsg",
+      "azurerm_network_security_rule.compliant_restrict_ssh",
+      "azurerm_network_security_rule.compliant_restrict_rdp",
+      "azurerm_public_ip.nat_gateway_ip",
+      "azurerm_nat_gateway.compliant_nat_gateway",
+      "azurerm_subnet_nat_gateway_association.compliant_nat_assoc",
+      "azurerm_application_gateway.compliant_app_gateway",
+      "azurerm_mssql_database.protected_db",
+      "azurerm_mssql_database_security_alert_policy.compliant_threat_detection",
+      "azurerm_mssql_database_auditing_policy.compliant_auditing",
+      "azurerm_monitor_diagnostic_setting.compliant_diagnostic",
+      "azurerm_monitor_autoscale_setting.compliant_autoscale",
+      "azurerm_storage_account_customer_managed_key.compliant_cmk",
+      "azurerm_network_interface.compliant_nic_tagged",
+      "azurerm_role_assignment.compliant_reader",
+      "azurerm_role_assignment.compliant_minimal_role"
     ]
     
     non_compliant_resources = [
@@ -524,26 +1090,67 @@ output "test_summary" {
       "azurerm_mssql_server.insecure_sql_server",
       "azurerm_mssql_database.insecure_db",
       "azurerm_key_vault.insecure_kv",
-      "azurerm_role_assignment.overpermissive_owner",
-      "azurerm_linux_web_app.insecure_app"
+      "azurerm_linux_web_app.insecure_app",
+      "azurerm_virtual_network.vnet",
+      "azurerm_service_plan.app_plan",
+      "azurerm_network_security_group.insecure_nsg",
+      "azurerm_network_security_rule.insecure_allow_ssh",
+      "azurerm_subnet.isolated_subnet",
+      "azurerm_application_gateway.insecure_app_gateway",
+      "azurerm_mssql_database.unprotected_db",
+      "azurerm_mssql_database_security_alert_policy.insecure_threat_detection",
+      "azurerm_monitor_diagnostic_setting.insecure_diagnostic",
+      "azurerm_role_assignment.insecure_contributor_role",
+      "azurerm_network_interface.minimal_nic"
     ]
     
-    policy_rules_tested = [
-      "required-tags",
-      "cost-tagging",
-      "naming-convention",
-      "encryption-at-rest",
-      "block-public-access",
-      "enable-logging",
-      "backup-enabled",
-      "use-private-subnet",
-      "azure-storage-https-only",
-      "iam-least-privilege"
-    ]
+    policy_coverage = {
+      total_policies_available = 41
+      policies_tested = 25  # Updated from 9 to 25
+      coverage_percentage = "61%"
+      
+      tested_policies = [
+        "required-tags",
+        "cost-tagging",
+        "naming-convention",
+        "encryption-at-rest",
+        "block-public-access",
+        "enable-logging",
+        "backup-enabled",
+        "use-private-subnet",
+        "azure-storage-https-only",
+        "iam-least-privilege",
+        "security-group-restrict-ssh-rdp",
+        "nat-gateway-for-private-subnets",
+        "waf-enabled-on-apis",
+        "database-delete-protection",
+        "database-enhanced-monitoring",
+        "log-retention-minimum-90-days",
+        "tls-minimum-version-1-2",
+        "compute-auto-scaling",
+        "kms-encryption-mandatory",
+        "comprehensive-resource-tagging",
+        "database-backup-retention-14-days",
+        "database-threat-detection",
+        "database-auditing-enabled",
+        "storage-account-customer-managed-key",
+        "role-based-access-control"
+      ]
+    }
+  }
+}
+
+output "resource_balance" {
+  description = "Balance of compliant vs non-compliant resources"
+  value = {
+    compliant_count = 26
+    non_compliant_count = 21
+    total_resources = 47
+    balance_note = "Expanded to 47 resources covering 25 policies. 61% coverage of all 41 policies."
   }
 }
 
 output "validation_command" {
   description = "Command to validate this configuration"
-  value       = "terraship validate . --policy ../../policies/sample-policy.yml --provider azure --output human"
+  value       = "terraship validate . --policy ../../policies/terraship-policy.yml --provider azure --output html"
 }
