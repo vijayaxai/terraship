@@ -628,11 +628,9 @@ resource "azurerm_public_ip" "nat_gateway_ip" {
 }
 
 resource "azurerm_nat_gateway" "compliant_nat_gateway" {
-  name                    = "terraship-nat-gateway"
-  location                = azurerm_resource_group.compliant_rg.location
-  resource_group_name     = azurerm_resource_group.compliant_rg.name
-  public_ip_address_ids   = [azurerm_public_ip.nat_gateway_ip.id]
-  idle_timeout_in_minutes = 10
+  name                = "terraship-nat-gateway"
+  location            = azurerm_resource_group.compliant_rg.location
+  resource_group_name = azurerm_resource_group.compliant_rg.name
 
   tags = {
     Environment = "Production"
@@ -640,6 +638,12 @@ resource "azurerm_nat_gateway" "compliant_nat_gateway" {
     Project     = "NAT Gateway"
     CostCenter  = "Infrastructure"
   }
+}
+
+# ✅ Associate NAT Gateway with public IP
+resource "azurerm_nat_gateway_public_ip_association" "compliant_nat_ip_assoc" {
+  nat_gateway_id       = azurerm_nat_gateway.compliant_nat_gateway.id
+  public_ip_address_id = azurerm_public_ip.nat_gateway_ip.id
 }
 
 # ✅ Associate NAT Gateway with private subnet
@@ -829,12 +833,11 @@ resource "azurerm_mssql_database" "unprotected_db" {
 
 # ✅ COMPLIANT: MSSQL Database with threat detection and auditing
 resource "azurerm_mssql_server_security_alert_policy" "compliant_threat_detection" {
-  resource_group_name        = azurerm_resource_group.compliant_rg.name
-  server_name                = azurerm_mssql_server.compliant_sql_server.name
-  state                      = "Enabled"  # ✅ Threat detection enabled
-  retention_days             = 30
-  disabled_alerts            = []
-  email_notification_admins  = true
+  resource_group_name       = azurerm_resource_group.compliant_rg.name
+  server_name               = azurerm_mssql_server.compliant_sql_server.name
+  state                     = "Enabled"  # ✅ Threat detection enabled
+  retention_days            = 30
+  disabled_alerts           = []
 }
 
 # Note: Database auditing is configured via server policy, keeping this example structure commented
@@ -861,18 +864,10 @@ resource "azurerm_monitor_diagnostic_setting" "compliant_diagnostic" {
 
   enabled_log {
     category = "StorageRead"
-    retention_policy {
-      enabled = true
-      days    = 90  # ✅ 90 days retention
-    }
   }
 
   metric {
     category = "Transaction"
-    retention_policy {
-      enabled = true
-      days    = 90
-    }
   }
 }
 
@@ -884,18 +879,10 @@ resource "azurerm_monitor_diagnostic_setting" "insecure_diagnostic" {
 
   enabled_log {
     category = "StorageRead"
-    retention_policy {
-      enabled = true
-      days    = 7  # ❌ Only 7 days - insufficient
-    }
   }
 
   metric {
     category = "Transaction"
-    retention_policy {
-      enabled = true
-      days    = 7
-    }
   }
 }
 
@@ -946,6 +933,7 @@ resource "azurerm_monitor_autoscale_setting" "compliant_autoscale" {
         time_grain         = "PT1M"
         statistic          = "Average"
         time_window        = "PT5M"
+        time_aggregation   = "Average"
         operator           = "GreaterThan"
         threshold          = 70
       }
