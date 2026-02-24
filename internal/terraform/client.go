@@ -9,16 +9,18 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 )
 
 // Client wraps Terraform operations
 type Client struct {
-	workingDir     string
-	terraformBin   string
-	backend        BackendConfig
-	workspace      string
-	envVars        map[string]string
+	workingDir   string
+	terraformBin string
+	backend      BackendConfig
+	workspace    string
+	envVars      map[string]string
 }
 
 // BackendConfig holds Terraform backend configuration
@@ -62,12 +64,12 @@ type Resource struct {
 
 // ResourceChange represents a change to a resource
 type ResourceChange struct {
-	Address       string                 `json:"address"`
-	Mode          string                 `json:"mode"`
-	Type          string                 `json:"type"`
-	Name          string                 `json:"name"`
-	ProviderName  string                 `json:"provider_name"`
-	Change        *Change                `json:"change"`
+	Address      string  `json:"address"`
+	Mode         string  `json:"mode"`
+	Type         string  `json:"type"`
+	Name         string  `json:"name"`
+	ProviderName string  `json:"provider_name"`
+	Change       *Change `json:"change"`
 }
 
 // Change represents the before/after values of a resource
@@ -85,7 +87,7 @@ type Configuration struct {
 
 // ConfigModule represents module configuration
 type ConfigModule struct {
-	Resources []ConfigResource `json:"resources,omitempty"`
+	Resources   []ConfigResource       `json:"resources,omitempty"`
 	ModuleCalls map[string]interface{} `json:"module_calls,omitempty"`
 }
 
@@ -155,9 +157,9 @@ func (c *Client) Validate(ctx context.Context) error {
 	}
 
 	var result struct {
-		Valid        bool   `json:"valid"`
-		ErrorCount   int    `json:"error_count"`
-		WarningCount int    `json:"warning_count"`
+		Valid        bool `json:"valid"`
+		ErrorCount   int  `json:"error_count"`
+		WarningCount int  `json:"warning_count"`
 		Diagnostics  []struct {
 			Severity string `json:"severity"`
 			Summary  string `json:"summary"`
@@ -185,7 +187,7 @@ func (c *Client) Validate(ctx context.Context) error {
 // Plan runs terraform plan and returns the plan file path
 func (c *Client) Plan(ctx context.Context, planFile string) error {
 	args := []string{"plan", "-no-color", "-out=" + planFile}
-	
+
 	output, err := c.runCommand(ctx, args...)
 	if err != nil {
 		return fmt.Errorf("terraform plan failed: %w\nOutput: %s", err, output)
@@ -308,6 +310,14 @@ func (c *Client) runCommand(ctx context.Context, args ...string) (string, error)
 	cmd.Env = os.Environ()
 	for key, value := range c.envVars {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// On Windows, set SysProcAttr to handle paths with spaces
+	if runtime.GOOS == "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{
+			HideWindow:    false,
+			CreationFlags: 0,
+		}
 	}
 
 	var stdout, stderr bytes.Buffer
