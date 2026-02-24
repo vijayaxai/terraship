@@ -303,6 +303,7 @@ func (c *Client) GetProvider(ctx context.Context) (string, error) {
 
 // runCommand executes a Terraform command
 func (c *Client) runCommand(ctx context.Context, args ...string) (string, error) {
+	// Use direct execution - let the operating system handle path resolution
 	cmd := exec.CommandContext(ctx, c.terraformBin, args...)
 	cmd.Dir = c.workingDir
 
@@ -312,11 +313,11 @@ func (c *Client) runCommand(ctx context.Context, args ...string) (string, error)
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
 
-	// On Windows, set SysProcAttr to handle paths with spaces
+	// On Windows, configure the subprocess creation attributes
 	if runtime.GOOS == "windows" {
 		cmd.SysProcAttr = &syscall.SysProcAttr{
 			HideWindow:    false,
-			CreationFlags: 0,
+			CreationFlags: 0x08000000, // CREATE_NO_WINDOW to reduce visibility issues
 		}
 	}
 
